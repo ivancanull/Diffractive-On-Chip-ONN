@@ -6,6 +6,7 @@ from utils import optim
 from utils import constants as Const
 import numpy as np
 import models.donn as donn
+import pickle as pickle
 
 class Solver(object):
 
@@ -28,6 +29,7 @@ class Solver(object):
         self.num_train_samples = kwargs.pop("num_train_samples", 1000)
         self.num_val_samples = kwargs.pop("num_val_samples", 1000)
         self.update_rule = kwargs.pop("update_rule", "sgd")
+        self.checkpoint_name = kwargs.pop("checkpoint_name", None)
 
         # define the modulated mode
         self.mode = kwargs.pop("mode", "phi")
@@ -55,6 +57,30 @@ class Solver(object):
         self.loss_history = []
         self.train_acc_history = []
         self.val_acc_history = []
+
+    def _save_checkpoint(self):
+        if self.checkpoint_name is None:
+            return
+        checkpoint = {
+            "model": self.model,
+            "update_rule": self.update_rule,
+            "lr_decay": self.lr_decay,
+            # "optim_config": self.optim_config,
+            "batch_size": self.batch_size,
+            "num_train_samples": self.num_train_samples,
+            "num_val_samples": self.num_val_samples,
+            "epoch": self.epoch,
+            "loss_history": self.loss_history,
+            "train_acc_history": self.train_acc_history,
+            "val_acc_history": self.val_acc_history,
+            "mode": self.mode,
+            "constrained": self.constrained,
+        }
+        filename = "./temp/%s_epoch_%d.pkl" % (self.checkpoint_name, self.epoch)
+        if self.verbose:
+            print('Saving checkpoint to "%s"' % filename)
+        with open(filename, "wb") as f:
+            pickle.dump(checkpoint, f)
 
     def _test(self):
 
@@ -202,7 +228,7 @@ class Solver(object):
                 )
                 self.train_acc_history.append(train_acc)
                 self.val_acc_history.append(val_acc)
-
+                self._save_checkpoint()
                 
                 for layer_index, layer in enumerate(self.model.layers):
                     if self.verbose and self.mode == "x0":

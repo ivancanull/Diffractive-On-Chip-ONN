@@ -17,6 +17,9 @@ class MLPModel(torch.nn.Module):
                 hidden_layer_num,):
         super(MLPModel, self).__init__()
 
+        self.input_neuron_num = input_neuron_num
+        self.hidden_neuron_num = hidden_neuron_num
+        self.output_neuron_num = output_neuron_num
         self.input_layer = torch.nn.Linear(input_neuron_num, hidden_neuron_num)
         self.hidden_layer = torch.nn.Linear(hidden_neuron_num, hidden_neuron_num)
         self.output_layer = torch.nn.Linear(hidden_neuron_num, output_neuron_num)
@@ -91,8 +94,13 @@ class MLP_Solver(object):
     def _step(self):
         num_train = self.X_train.shape[0]
         batch_mask = np.random.choice(num_train, self.batch_size)
-        X_batch = self.X_train[batch_mask]
-        y_batch = self.y_train[batch_mask]
+    
+        X_batch = torch.Tensor(self.X_train[batch_mask])
+        y_batch = torch.zeros((self.batch_size, self.model.output_neuron_num))
+
+        indices = torch.unsqueeze(torch.LongTensor(self.y_train[batch_mask]), 1)
+        # indices = torch.LongTensor(self.y_train[batch_mask])
+        y_batch = y_batch.scatter(1, indices, 1)
         self.optimizer.zero_grad()
         prediction = self.model(X_batch)
         output = self.loss(prediction, y_batch)
@@ -121,7 +129,7 @@ class MLP_Solver(object):
         if num_samples is not None and N > num_samples:
             mask = np.random.choice(N, num_samples)
             N = num_samples
-            X = X[mask]
+            X = torch.Tensor(X[mask])
             y = y[mask]
 
         # compute predictions in batches
@@ -133,8 +141,10 @@ class MLP_Solver(object):
             start = i * batch_size
             end = (i + 1) * batch_size
             inference = self.model(X[start:end])
-            y_pred.append(inference)
+            # print(torch.argmax(inference, axis=1).detach().numpy())
+            y_pred.append(torch.argmax(inference, axis=1).detach().numpy()) 
         y_pred = np.hstack(y_pred)
+        # print(y_pred == y)
         acc = np.mean(y_pred == y)
         return acc
 
@@ -180,16 +190,11 @@ class MLP_Solver(object):
                 self.train_acc_history.append(train_acc)
                 self.val_acc_history.append(val_acc)
 
-                
-                for layer_index, layer in enumerate(self.model.layers):
-                    if self.verbose and self.mode == "x0":
-                        print ("delta x0 for layer %d:" % layer_index, (layer.x0 - layer.original_x0) / Const.Lambda0)
 
                 print(
                     "(Epoch %d / %d) train acc: %f; val_acc: %f"
-                    % (self.epoch, self.num_epochs, train_acc, val_acc)
+                    % (self.epoch, self.num_epochs, train_acc, val_acc,)
                 )
-
                 # Keep track of the best model
                 if val_acc > self.best_val_acc:
                     self.best_val_acc = val_acc
@@ -211,16 +216,16 @@ def test_MLP():
 
     (train_X, train_y), (test_X, test_y) = encoding.utils.load_data(new_size)
     data = {}
-    data["X_train"] = train_X
+    data["X_train"] = train_X / 255.0
     data["y_train"] = train_y
-    data["X_val"] = test_X
+    data["X_val"] = test_X / 255.0
     data["y_val"] = test_y
     
     print('The model:')
     print(mlpmodel)
     solver = MLP_Solver(mlpmodel, data,
-                        learning_rate=0.5e-11,
-                        num_epochs=100,
+                        learning_rate=1e-3,
+                        num_epochs=1000,
                         batch_size=50,
                         verbose=False,
                         lr_decay=0.95,

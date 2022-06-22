@@ -32,7 +32,7 @@ def test_solver(mode):
 
     
     DONN_model = donn.get_donn_example(input_neuron_num=input_dim, 
-                                        hidden_layer_num=2,
+                                        hidden_layer_num=4,
                                         phi_init=phi_init,
                                         nonlinear=False,
                                         hidden_neuron_num=hidden_neuron_num,
@@ -50,11 +50,13 @@ def test_solver(mode):
 
     solver = Solver(DONN_model, data,
                     learning_rate=0.5e-11,
-                    num_epochs=100,
-                    batch_size=100,
+                    num_epochs=20,
+                    batch_size=50,
                     mode="x0",
                     verbose=False,
-                    constrained=False
+                    constrained=False,
+                    lr_decay=0.95,
+                    checkpoint_name="x0_checkpoint_4_layer",
                     )
     
     solver.train()

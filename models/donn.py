@@ -323,7 +323,7 @@ class DONN(object):
             loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
             # dout for last layer
             dout = [np.expand_dims(np.ones(batch_size), axis=1)] * self.output_neuron_num
-
+            dphi = [[None] * self.output_neuron_num]
             for i in reversed(range(self.layer_num)):
                 S = np.zeros(batch_size + (self.layers[i].neuron_number, ))
                 for k in range(self.output_neuron_num):
@@ -333,19 +333,6 @@ class DONN(object):
                         cache = output_cache[k]
                     else:
                         cache = Ex_cache[i]
-                    
-                    method = 2
-
-                    if method == 1:
-                        # method 1
-                        dout[k], dEx_dx0 = self.layers[i].backward_propagation_holomorphic_phi(dout[k], cache)
-                        output_expanded = np.expand_dims(np.conj(output_Ex[:, k:k + 1]), axis=-1)
-                        real_part = np.sum(np.real(output_expanded * dEx_dx0), axis=-1)
-                    else:
-                        # method 2
-                        Ex_conj = np.conj(output_Ex[:, k:k + 1])
-                        dout[k], dEx_dx0 = self.layers[i].backward_propagation_holomorphic_x0_v2(dout[k], cache, Ex_conj)
-                        real_part = np.real(dEx_dx0)
                     dout[k], dEx_dphi = self.layers[i].backward_propagation_holomorphic_phi(dout[k], cache)
                     
                     # dEx_dphi shape (1, m_i)

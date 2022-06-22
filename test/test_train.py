@@ -2,6 +2,7 @@ import sys, os
 
 sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
 import numpy as np
+import pandas as pd
 
 import time
 
@@ -43,6 +44,11 @@ def test_multibatch_train(mode):
     iter_num = 100
 
     input_dim = new_size ** 2
+
+    iter_history = []
+    loss_history = []
+    train_accuracy_history = []
+    test_accuracy_history = []
 
     t = 1
     hidden_neuron_num = 400 * t
@@ -155,15 +161,20 @@ def test_multibatch_train(mode):
             output_Ex = DONN_model.forward(input_Ex)
             y_inf_test = np.argmax(np.abs(output_Ex), axis=1)
             test_accuracy = np.mean(y_inf_test == target_test)
-
+            loss = np.mean(loss)
             # print("iter %d Ex norm:" % k, np.abs(output_Ex))
-            print("iter %d loss:" % iter, np.mean(loss))
+            print("iter %d loss:" % iter, loss)
             print("iter %d train accuracy:" % iter, train_accuracy)
             print("target:", target)
             print("predict:", y_inf_train)  
             print("iter %d test accuracy:" % iter, test_accuracy)
             print("target:", target_test)
             print("predict:", y_inf_test)
+
+            iter_history.append(iter)
+            loss_history.append(loss.item())
+            train_accuracy_history.append(train_accuracy.item())
+            test_accuracy_history.append(test_accuracy.item())
             # print("Ex:", output_Ex[0])
             # print("Ex abs:", np.abs(output_Ex[0]))
 
@@ -171,6 +182,10 @@ def test_multibatch_train(mode):
         print(DONN_model.layers[0].phi - DONN_model.layers[0].original_phi)
     elif mode == "x0":
         print((DONN_model.layers[0].x0 - DONN_model.layers[0].original_x0) / Const.Lambda0)
+
+    dict = {'iter': iter_history, 'loss': loss_history, 'train_accuracy': train_accuracy_history, 'test_accuracy': test_accuracy_history}
+    df = pd.DataFrame(dict) 
+    df.to_csv('./data/output/test_train.csv') 
 
 def test_train(mode):
     """
@@ -278,7 +293,7 @@ def test_train(mode):
 
 def main():
     starttime = time.time()
-    test_multibatch_train("phi")
+    test_multibatch_train("x0")
     endtime = time.time()
     print("time:", endtime - starttime)
 if __name__ == "__main__":
