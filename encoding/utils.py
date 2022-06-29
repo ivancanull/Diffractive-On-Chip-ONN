@@ -4,17 +4,18 @@ from tensorflow.keras.datasets import mnist
 import matplotlib.pyplot as plt
 import cv2
 import os.path
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
+import encoding.fft
 
-
-def load_data(new_size):
+def load_data(new_size, fft=False):
     (train_X, train_y), (test_X, test_y) = import_MNIST()
 
-
-    #
     #example_input = get_MNIST_example(batch_size)
-    
-    out_file = "./data/MNIST/MNIST_" + str(new_size) + "x" + str(new_size) + ".npz"
-
+    if fft == True:
+        out_file = "./data/MNIST/MNIST_fft_" + str(new_size) + "x" + str(new_size) + ".npz"
+    else:
+        out_file = "./data/MNIST/MNIST_" + str(new_size) + "x" + str(new_size) + ".npz"
 
     if os.path.isfile(out_file):
         npz_file = np.load(out_file)
@@ -22,14 +23,20 @@ def load_data(new_size):
     else:
         dim = train_X.shape[0]
         compressed_train_X = np.zeros((dim, new_size, new_size))
-        for i in range(dim):
-            compressed_train_X[i] = cv2.resize(train_X[i], (new_size, new_size))
+        if fft == True:
+            compressed_train_X = encoding.fft.fft_2D(train_X, new_size)
+        else:
+            for i in range(dim):
+                compressed_train_X[i] = cv2.resize(train_X[i], (new_size, new_size))
         compressed_train_X = np.reshape(compressed_train_X, (dim, new_size ** 2))
         
         dim = test_X.shape[0]
         compressed_test_X = np.zeros((dim, new_size, new_size))
-        for i in range(dim):
-            compressed_test_X[i] = cv2.resize(test_X[i], (new_size, new_size))
+        if fft == True:
+            compressed_test_X = encoding.fft.fft_2D(test_X, new_size)
+        else:
+            for i in range(dim):
+                compressed_test_X[i] = cv2.resize(test_X[i], (new_size, new_size))
         compressed_test_X = np.reshape(compressed_test_X, (dim, new_size ** 2))
         
         with open(out_file, 'wb') as f:
@@ -95,7 +102,7 @@ def get_training_example(batch_size, new_size, random_indices=True):
         indices = np.arange(batch_size)
         sampled_X = train_X[indices]
         sampled_y = train_y[indices]
-    #
+
     #example_input = get_MNIST_example(batch_size)
     
     compressed_input = np.zeros((sampled_X.shape[0], new_size, new_size), dtype=np.float64)
@@ -104,9 +111,12 @@ def get_training_example(batch_size, new_size, random_indices=True):
     compressed_Ex = np.reshape(compressed_input, (batch_size, new_size ** 2))
     return (compressed_Ex, sampled_y)
 
+def phase_encoding(train_X, train_y, test_X, test_y):
+    train_X = np.exp((train_X / 255.0) * 2 * np.pi * 1j)
+    test_X = np.exp((test_X / 255.0) * 2 * np.pi * 1j)
+    return (train_X, train_y), (test_X, test_y)
 
 def test():
-
     (train_X, train_y), (test_X, test_y) = import_MNIST()
     shape = train_X.shape
     example_num = 4
@@ -118,7 +128,6 @@ def test():
         plt.subplot(221 + i)
         plt.imshow(example_x[i], cmap=plt.get_cmap('gray'))
     plt.show()
-
     (compressed_Ex, sampled_y) = get_training_example(4, 10)
     
 def main():

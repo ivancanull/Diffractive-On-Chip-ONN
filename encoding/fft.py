@@ -23,7 +23,9 @@ def fft_2D(imgs: np.ndarray,
     Returns: 
         input_Ex: encoded input Ex of (m, k) or (k, )
     """
-    assert (output_dim - 1) % 2 == 0
+    
+    if (output_dim - 1) % 2 != 0:
+        raise ValueError("output_dim must be an odd number")
 
     fft2_result = np.fft.fft2(imgs)
     shifted_fft = np.fft.fftshift(fft2_result,  axes=(1, 2, ))

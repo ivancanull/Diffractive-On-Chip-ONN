@@ -70,7 +70,8 @@ class Solver(object):
             "num_train_samples": self.num_train_samples,
             "num_val_samples": self.num_val_samples,
             "epoch": self.epoch,
-            "loss_history": self.loss_history,
+            # do not save loss_history
+            # "loss_history": self.loss_history,
             "train_acc_history": self.train_acc_history,
             "val_acc_history": self.val_acc_history,
             "mode": self.mode,

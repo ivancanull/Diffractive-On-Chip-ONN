@@ -1,5 +1,4 @@
 import sys, os
-from tabnanny import verbose
 
 sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
 import numpy as np
@@ -18,18 +17,14 @@ def test_solver(mode):
     print("train dataset size: ", train_X.shape[0])
     print("test dataset size: ", test_X.shape[0])
 
-
     if mode == "phi":
         phi_init = "random"
     elif mode == "x0":
         phi_init = "default"
     data = {}
-    
 
     t = 1
     hidden_neuron_num = 400 * t
-
-
     
     DONN_model = donn.get_donn_example(input_neuron_num=input_dim, 
                                         hidden_layer_num=4,
@@ -41,7 +36,6 @@ def test_solver(mode):
                                         hidden_distance=3e-6 / Const.Lambda0,
                                         output_distance=80 * t,)
     DONN_model.plot_structure()
-
 
     data["X_train"] = train_X
     data["y_train"] = train_y
@@ -61,12 +55,9 @@ def test_solver(mode):
     
     solver.train()
 
-
 def main():
     test_solver("x0")
 
 if __name__ == '__main__':
     main()
     pass
-
-
