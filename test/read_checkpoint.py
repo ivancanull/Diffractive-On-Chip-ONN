@@ -2,9 +2,13 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
 import numpy as np
 import models.donn as donn
+import models.flexible_donn as flexible_donn
+
 import pickle as pickle
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import argparse
+
 def plot_loss_and_accuracy(loss, accuracy, epoch):
 
     X_loss = np.linspace(0, epoch, 480)
@@ -31,40 +35,44 @@ def plot_loss_and_accuracy(loss, accuracy, epoch):
     fig.savefig(os.path.join('./figures', 'loss_accuracy.pdf'))
     fig.show()
 
+class checkpoint(object):
 
+    def __init__(self, filename):
+        with open(filename, 'rb') as f:
+            checkpoint = pickle.load(f)
+        
+        self.model = checkpoint["model"]
+        self.update_rule = checkpoint["update_rule"]
+        self.lr_decay = checkpoint["lr_decay"]
+        self.batch_size = checkpoint["batch_size"]
+        self.num_train_samples = checkpoint["num_train_samples"]
+        self.num_val_samples = checkpoint["num_val_samples"]
+        self.epoch = checkpoint["epoch"]
+        self.train_acc_history = checkpoint["train_acc_history"]
+        self.val_acc_history = checkpoint["val_acc_history"]
+        self.mode = checkpoint["mode"]
+        self.constrained = checkpoint["constrained"]
+    
+    def get_model(self):
+        return self.model
+    
+    def write_x0_diff(self):
+        for layer_index, layer in enumerate(self.model.layers):
+            diff = (layer.x0 - layer.original_x0) / 1e-6
+            np.savetxt("./temp/diff_layer_" + str(layer_index) + ".txt", diff)
+        return
 
+def main(args):
 
-def read_checkpoint(filename):
-    """
-    checkpoint = {
-            "model": self.model,
-            "update_rule": self.update_rule,
-            "lr_decay": self.lr_decay,
-            # "optim_config": self.optim_config,
-            "batch_size": self.batch_size,
-            "num_train_samples": self.num_train_samples,
-            "num_val_samples": self.num_val_samples,
-            "epoch": self.epoch,
-            "loss_history": self.loss_history,
-            "train_acc_history": self.train_acc_history,
-            "val_acc_history": self.val_acc_history,
-            "mode": self.mode,
-            "constrained": self.constrained,
-        }
-    """
-    with open(filename, 'rb') as f:
-        checkpoint = pickle.load(f)
-
-    train_acc_history = checkpoint["train_acc_history"]
-    loss_history = checkpoint["loss_history"]
-    val_acc_history = checkpoint["val_acc_history"]
-
-    return loss_history, train_acc_history, val_acc_history
+    filename = "./temp/" + args.filename + ".pkl"
+    cp = checkpoint(filename)
+    cp.write_x0_diff()
     
 
-def main():
-    loss_history, train_acc_history, val_acc_history = read_checkpoint("./temp/x0_checkpoint_epoch_40.pkl")
-    plot_loss_and_accuracy(loss_history, val_acc_history, epoch=40)
-
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--filename', dest='filename', default='temp_epoch_10', type=str)
+    args = parser.parse_args()
+
+    main(args)

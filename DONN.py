@@ -39,7 +39,7 @@ def main(args):
                                                                 global_layer_num=args.global_layer_num,
                                                                 global_neuron_num=args.global_neuron_num,
                                                                 input_distance=4,
-                                                                local_neuron_distance=3e-6 / Const.Lambda0,
+                                                                local_neuron_distance=1.5e-6 / Const.Lambda0,
                                                                 global_neuron_distance=3e-6 / Const.Lambda0,
                                                                 local_layer_distance=15e-6 / Const.Lambda0,
                                                                 global_layer_distance=1500e-6 / Const.Lambda0,
@@ -57,6 +57,9 @@ def main(args):
                                             input_distance=4,
                                             hidden_distance=3e-6 / Const.Lambda0,
                                             output_distance=80,)
+
+    if args.not_plot == False:
+        DONN_model.plot_structure(args.checkpoint_name)
 
     data = {}
     data["X_train"] = train_X
@@ -101,6 +104,8 @@ if __name__ == '__main__':
     parser.add_argument('--constrained', dest='constrained', default=False, type=bool, help='with constrained neurons location')
     parser.add_argument('--lr_decay', dest='lr_decay', default=1.0, type=float, help='learning rate decay')
     parser.add_argument('--checkpoint_name', dest='checkpoint_name', default='temp', type=str, help='checkpoint_name')
+
+    parser.add_argument('--not_plot', action='store_true', dest='not_plot', help='do not plot the structure of DONN')
     args = parser.parse_args()
 
     main(args)

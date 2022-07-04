@@ -64,6 +64,7 @@ class Flexible_DONN(object):
         print(hidden_layer_distance)
         y = 0
         for i in range(hidden_layer_num):
+            print(i)
             hidden_layer = models.onn_layer.ONN_Layer(neuron_number=hidden_neuron_num[i], 
                                                       distance=hidden_distance[i], 
                                                       bound=hidden_bound[i], 
@@ -105,7 +106,7 @@ class Flexible_DONN(object):
                 print("Proapagation from Layer %d to layer %d" % (layer_index, layer_index + 1))
             input_Ex, cache = layer.forward_propagation(input_Ex, self.dests[layer_index])
             # self.input_Ex.append(input_Ex)
-            np.savetxt("./temp/layer_" + str(layer_index) + ".txt", np.abs(input_Ex))
+            # np.savetxt("./temp/layer_" + str(layer_index) + ".txt", np.abs(input_Ex))
         if verbose == True:
             print("------------------------------------------------------")
         return input_Ex
@@ -294,7 +295,7 @@ class Flexible_DONN(object):
         else:
             return output_Ex
 
-    def plot_structure(self):
+    def plot_structure(self, filename="temp"):
         input_width = self.input_bound * 2 + (self.input_neuron_num - 1) * self.input_distance
         # local_hidden_width = self.hidden_bound * 2 + (self.hidden_neuron_num - 1) * self.hidden_distance
         output_width = self.output_bound * 2 + (self.output_neuron_num - 1) * self.output_distance
@@ -317,9 +318,8 @@ class Flexible_DONN(object):
         #ax.set_xlim(0, input_width)
         #ax.set_ylim(0, self.height)
         ax.axis('equal')
-        pyplot.savefig("structure.pdf", format='pdf', bbox_inches='tight')
-        pyplot.show()
-
+        pyplot.savefig("./figs/" + filename + "_structure.pdf", format='pdf', bbox_inches='tight')
+        # pyplot.show()
 
 def get_local_global_donn_example(input_neuron_num=196,
                                 output_neuron_num=10,
