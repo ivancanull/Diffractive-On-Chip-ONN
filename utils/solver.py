@@ -11,7 +11,7 @@ import pickle as pickle
 class Solver(object):
 
     def __init__(self, 
-                 model: donn.DONN, 
+                 model,
                  data, 
                  **kwargs):
         """

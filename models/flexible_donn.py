@@ -7,6 +7,7 @@ import utils.helpers
 import models.onn_layer
 import models.layers as Layers
 import encoding.utils
+from matplotlib import pyplot
 
 class Flexible_DONN(object):
 
@@ -57,7 +58,10 @@ class Flexible_DONN(object):
                                                  )
         
         self.layers.append(input_layer)
-
+        print(hidden_neuron_num)
+        print(hidden_distance)
+        print(hidden_bound)
+        print(hidden_layer_distance)
         y = 0
         for i in range(hidden_layer_num):
             hidden_layer = models.onn_layer.ONN_Layer(neuron_number=hidden_neuron_num[i], 
@@ -78,7 +82,7 @@ class Flexible_DONN(object):
         # define the output plane, the output plane is defined as a passive plane with different location
         dests = np.zeros((output_neuron_num, 2), dtype=np.float64)
         dests[:, 0] = np.arange(output_bound, output_bound + output_distance * output_neuron_num, output_distance) * Const.Lambda0
-        dests[:, 1] = -(output_layer_distance + y)
+        dests[:, 1] = -(output_layer_distance + y) * Const.Lambda0
         self.height = output_layer_distance + y
         self.dests.append(dests)
 
@@ -106,6 +110,89 @@ class Flexible_DONN(object):
             print("------------------------------------------------------")
         return input_Ex
 
+    def loss_v3(self, input_Ex, y=None, backpropagate=True):
+        
+        """
+        Phase-Modulated Loss Function
+
+        Ref: T. Fu et al., “On-chip photonic diffractive optical neural 
+        network based on a spatial domain electromagnetic propagation model,” 
+        Opt. Express, vol. 29, no. 20, p. 31924, 2021, doi: 10.1364/oe.435183.
+
+        Evaluate Loss and Gradient according to the following equation:
+
+        s_k = abs(out_k) ^ 2
+        g_k = target of k
+
+        Loss: normalized mean square error
+        L = the average of (s_k / S - g_k) ^ 2
+        S = sum(s_k)
+        dEx = 4 / K * sum[(s_k / S - g_k) * (S - s_k) / (S ^ 2) * 
+              real(out_k.conj() * dEx_dphi)]
+        shape:       (n, 1)       (1, m_i)
+
+
+        """
+
+        batch_size = input_Ex.shape[:-1]
+
+        # first compute the output seprately
+        Ex_out = []
+        Ex_cache = []
+        dphi_list = {}
+
+        for layer_index, layer in enumerate(self.layers[:-1]):
+            input_Ex, cache = layer.forward_propagation(input_Ex, self.dests[layer_index])
+            Ex_out.append(input_Ex)
+            Ex_cache.append(cache)
+            # np.savetxt("./temp/layer_" + str(layer_index) + ".txt", np.abs(input_Ex))
+        # print("------------------------------------------------------")        
+        # normaliztion layer 
+
+        # define the location of the output plane
+        output_plane = self.dests[-1]
+        # Ex at output
+        output_Ex_shape = batch_size + (self.output_neuron_num, )
+        output_Ex = np.zeros(output_Ex_shape, dtype=np.complex64)
+        output_cache = []
+        for k in range(self.output_neuron_num):
+            dest_k = output_plane[k:k + 1, :]
+            Ex, cache = self.layers[-1].forward_propagation(input_Ex, dest_k)
+            output_Ex[:, k:k + 1] = Ex
+            output_cache.append(cache)
+
+
+        if backpropagate == True:
+            loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
+            # dout for last layer
+            dout = [np.expand_dims(np.ones(batch_size), axis=1)] * self.output_neuron_num
+            dphi = [[None] * self.output_neuron_num]
+            for i in reversed(range(self.layer_num)):
+                S = np.zeros(batch_size + (self.layers[i].neuron_number, ))
+                for k in range(self.output_neuron_num):
+                    # neurons of last layer have different cache
+                    # print("dout[%d %d] shape is: " % (i, k), dout[k].shape )
+                    if i == len(self.layers) - 1:
+                        cache = output_cache[k]
+                    else:
+                        cache = Ex_cache[i]
+                    dout[k], dEx_dphi = self.layers[i].backward_propagation_holomorphic_phi(dout[k], cache)
+                    
+                    # dEx_dphi shape (1, m_i)
+                    dEx_dphi = np.sum(dEx_dphi, axis=0, keepdims=True)
+                    # print("dEx_dphi[%d %d] shape is: " % (i, k), dEx_dphi.shape )
+                    # S shape (n, m_i)
+                    # print("s_sum shape:", coeff.shape)
+                    S = S + coeff[:, k:k + 1] * np.real(np.conj(output_Ex[:, k:k + 1]) * dEx_dphi)
+                S = 4 * S / self.output_neuron_num
+                S = np.mean(S, axis=0)
+                dphi_list[i] = S
+                # print("S shape: ", S.shape)
+            return output_Ex, loss, dphi_list
+
+        else:
+            return output_Ex
+            
     def loss_v4(self, input_Ex, y=None, backpropagate=True):
         
         """
@@ -209,10 +296,10 @@ class Flexible_DONN(object):
 
     def plot_structure(self):
         input_width = self.input_bound * 2 + (self.input_neuron_num - 1) * self.input_distance
-        hidden_width = self.hidden_bound * 2 + (self.hidden_neuron_num - 1) * self.hidden_distance
+        # local_hidden_width = self.hidden_bound * 2 + (self.hidden_neuron_num - 1) * self.hidden_distance
         output_width = self.output_bound * 2 + (self.output_neuron_num - 1) * self.output_distance
         print("Input Width: ", input_width)
-        print("Hidden Width: ", hidden_width)
+        # print("Hidden Width: ", hidden_width)
         print("Output Width: ", output_width)
         print("Height: ", self.height)
 
@@ -221,9 +308,12 @@ class Flexible_DONN(object):
             # plot.plot_layer_pattern(layer, input_Ex, height=self.layer_distance / Const.Lambda0)
             # print("Proapagation from Layer %d to layer %d" % (layer_index, layer_index + 1))
             x = layer.x0 / Const.Lambda0
+            # print(x)
             y = layer.y0 * np.ones(x.shape) / Const.Lambda0
+            # print(y)
             ax.scatter(x, y)
         ax.scatter(self.dests[-1][:, 0] / Const.Lambda0, self.dests[-1][:, 1] / Const.Lambda0)
+        print(self.dests[-1][:, 0] / Const.Lambda0)
         #ax.set_xlim(0, input_width)
         #ax.set_ylim(0, self.height)
         ax.axis('equal')
@@ -231,26 +321,41 @@ class Flexible_DONN(object):
         pyplot.show()
 
 
-def get_local_global_donn_example(input_neuron_num=25,
+def get_local_global_donn_example(input_neuron_num=196,
+                                output_neuron_num=10,
                                 local_layer_num=2,
                                 local_neuron_num=1000,
-                                local_neuron_distance=4,
-                                local_layer_distance=4e-6 / Const.Lambda0,
+                                local_neuron_distance=1.5e-6 / Const.Lambda0,
+                                local_layer_distance=15e-6 / Const.Lambda0,
                                 global_layer_num=3,
                                 global_neuron_num=1000,
-                                global_neuron_distance=4,
+                                global_neuron_distance=1.5e-6 / Const.Lambda0,
                                 global_layer_distance=1500e-6 / Const.Lambda0,
-                                input_distance=30,
-                                output_distance=160,
+                                input_distance=7.6e-6 / Const.Lambda0,
+                                output_distance=150e-6 / Const.Lambda0,
                                 phi_init="default",
                                 nonlinear=False):
+    """
+    Get Flexible DONN Example
+
+    Local Layer Num: 2
+    Local Layer Distance: 15 um
+
+    Global Layer Num: 3
+    Global Layer Distance: 1500 um
+
+    Input Neuron Distance: 7.6 um
+    Local / Global Neuron Distance: 1.5 um
+    Output Neuron Distance: 150 um
+    """
+
+    
     ## construct the deep onn structure
     # define the structure parameters
 
     # new_size = 10
     #hidden_neuron_num = 100
     #output_neuron_num = 10
-    assert hidden_neuron_num > 20
     # hidden_layer_num = 1
     # layer_distance = hidden_distance * hidden_neuron_num
     hidden_layer_num = local_layer_num + global_layer_num
@@ -294,7 +399,8 @@ def main():
                                 local_neuron_distance=1.5e-6 / Const.Lambda0,
                                 global_neuron_distance=1.5e-6 / Const.Lambda0,
                                 input_distance=7.6e-6 / Const.Lambda0,
-                                output_distance=150e-6 / Const.Lambda0
+                                output_distance=150e-6 / Const.Lambda0,
+                                local_layer_distance=15e-6 / Const.Lambda0,
                                 )
     
     donn.plot_structure()
