@@ -8,6 +8,8 @@ import numpy as np
 import models.donn as donn
 import pickle as pickle
 
+from matplotlib import pyplot as plt
+
 class Solver(object):
 
     def __init__(self, 
@@ -42,6 +44,9 @@ class Solver(object):
             raise ValueError('Invalid update_rule "%s"' % self.update_rule)
         self.update_rule = getattr(optim, self.update_rule)
         self.print_every = kwargs.pop("print_every", 10)
+
+        # dummy DONN
+        self.dummy = kwargs.pop("dummy", False)
 
         self._reset()
 
@@ -141,12 +146,17 @@ class Solver(object):
             elif self.mode == "x0":
                 #print((next_w - w) / Const.Lambda0)
                 layer.x0 = next_w
-                if self.constrained == True:
-                    x0_outbound_l = layer.x0 < layer.x0_left_limit
-                    x0_outbound_r = layer.x0 > layer.x0_right_limit
-                    layer.x0[x0_outbound_l] = layer.x0_left_limit[x0_outbound_l]
-                    layer.x0[x0_outbound_r] = layer.x0_right_limit[x0_outbound_r]
-                
+                # if self.constrained == True:
+                #     x0_outbound_l = layer.x0 < layer.x0_left_limit
+                #     x0_outbound_r = layer.x0 > layer.x0_right_limit
+                #     layer.x0[x0_outbound_l] = layer.x0_left_limit[x0_outbound_l]
+                #     layer.x0[x0_outbound_r] = layer.x0_right_limit[x0_outbound_r]
+
+        # OMG! I forgot this! Shit!
+        self.model.update_dests()
+        if self.dummy == True:
+            self.model.remove_dummy_cells()
+
     def check_accuracy(self, X, y, num_samples=None, batch_size=100):
         """
         Check accuracy of the model on the provided data.
@@ -247,3 +257,76 @@ class Solver(object):
 
         # At the end of training swap the best params into the model
         return self.best_model
+
+    def val_heatmap(self, num_samples):
+
+        N = self.X_val.shape[0]
+        if num_samples is not None and N > num_samples:
+            mask = np.random.choice(N, num_samples)
+            N = num_samples
+            X = self.X_val[mask]
+            y = self.y_val[mask]
+        
+        output_dim = self.model.output_neuron_num
+
+        # compute predictions in batches
+        num_batches = N // self.batch_size
+        if N % self.batch_size != 0:
+            num_batches += 1
+        y_pred = []
+        for i in range(num_batches):
+            start = i * self.batch_size
+            end = (i + 1) * self.batch_size
+            output_Ex = self.model.forward(X[start:end])
+            inference = np.argmax(np.abs(output_Ex), axis=1)
+            y_pred.append(inference)
+        y_pred = np.hstack(y_pred)
+        
+        heatmap = np.zeros((output_dim, output_dim), dtype=np.int16)
+        for i in range(y.shape[0]):
+            heatmap[y_pred[i], y[i]] += 1
+
+        fig, ax = plt.subplots()
+        im = ax.imshow(heatmap)
+        for i in range(output_dim):
+            for j in range(output_dim):
+                text = ax.text(j, i, heatmap[i, j],
+                                ha="center", va="center", color="w")
+        plt.show()
+
+    def train_assessment(self, num_iterations=100):
+        """
+        Run sample training to assess the model.
+        """
+        best_train_acc = 0
+        best_val_acc = 0
+        best_t = 0
+        train_acc = self.check_accuracy(
+            self.X_train, self.y_train, num_samples=self.num_train_samples
+        )
+        val_acc = self.check_accuracy(
+            self.X_val, self.y_val, num_samples=self.num_val_samples
+        )
+        print(
+            "(Iteration %d / %d) train acc: %f; val_acc: %f"
+            % (0, num_iterations, train_acc, val_acc)
+        )
+        for t in range(num_iterations):                
+            self._step()
+        
+            if (t + 1) % self.print_every == 0:
+                train_acc = self.check_accuracy(
+                    self.X_train, self.y_train, num_samples=self.num_train_samples
+                )
+                val_acc = self.check_accuracy(
+                    self.X_val, self.y_val, num_samples=self.num_val_samples
+                )          
+                print(
+                    "(Iteration %d / %d) train acc: %f; val_acc: %f"
+                    % (t + 1, num_iterations, train_acc, val_acc)
+                )
+                if best_val_acc < val_acc:
+                    best_train_acc = train_acc
+                    best_val_acc = val_acc
+                    best_t = t + 1
+        return (best_t, best_train_acc, best_val_acc)

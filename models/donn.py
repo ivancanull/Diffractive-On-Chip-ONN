@@ -456,10 +456,10 @@ class DONN(object):
         input_width = self.input_bound * 2 + (self.input_neuron_num - 1) * self.input_distance
         hidden_width = self.hidden_bound * 2 + (self.hidden_neuron_num - 1) * self.hidden_distance
         output_width = self.output_bound * 2 + (self.output_neuron_num - 1) * self.output_distance
-        print("Input Width: ", input_width)
-        print("Hidden Width: ", hidden_width)
-        print("Output Width: ", output_width)
-        print("Height: ", self.height)
+        # print("Input Width: ", input_width)
+        # print("Hidden Width: ", hidden_width)
+        # print("Output Width: ", output_width)
+        # print("Height: ", self.height)
 
         fig, ax = pyplot.subplots()
         for layer_index, layer in enumerate(self.layers):
@@ -472,7 +472,7 @@ class DONN(object):
         #ax.set_xlim(0, input_width)
         #ax.set_ylim(0, self.height)
         ax.axis('equal')
-        pyplot.savefig("./figs/" + filename + "_structure.pdf", format='pdf', bbox_inches='tight')
+        pyplot.savefig("./figures/" + filename + "_structure.pdf", format='pdf', bbox_inches='tight')
         # pyplot.show()
 
 def get_donn_example(input_neuron_num=25,
@@ -483,6 +483,7 @@ def get_donn_example(input_neuron_num=25,
                      hidden_distance=4,
                      output_distance=160,
                      phi_init="default",
+                     layer_distance=1600,
                      nonlinear=False):
     ## construct the deep onn structure
     # define the structure parameters

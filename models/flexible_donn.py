@@ -58,13 +58,13 @@ class Flexible_DONN(object):
                                                  )
         
         self.layers.append(input_layer)
-        print(hidden_neuron_num)
-        print(hidden_distance)
-        print(hidden_bound)
-        print(hidden_layer_distance)
+        # print(hidden_neuron_num)
+        # print(hidden_distance)
+        # print(hidden_bound)
+        # print(hidden_layer_distance)
         y = 0
         for i in range(hidden_layer_num):
-            print(i)
+            # print(i)
             hidden_layer = models.onn_layer.ONN_Layer(neuron_number=hidden_neuron_num[i], 
                                                       distance=hidden_distance[i], 
                                                       bound=hidden_bound[i], 
@@ -299,10 +299,10 @@ class Flexible_DONN(object):
         input_width = self.input_bound * 2 + (self.input_neuron_num - 1) * self.input_distance
         # local_hidden_width = self.hidden_bound * 2 + (self.hidden_neuron_num - 1) * self.hidden_distance
         output_width = self.output_bound * 2 + (self.output_neuron_num - 1) * self.output_distance
-        print("Input Width: ", input_width)
+        # print("Input Width: ", input_width)
         # print("Hidden Width: ", hidden_width)
-        print("Output Width: ", output_width)
-        print("Height: ", self.height)
+        # print("Output Width: ", output_width)
+        # print("Height: ", self.height)
 
         fig, ax = pyplot.subplots()
         for layer_index, layer in enumerate(self.layers):
@@ -314,11 +314,11 @@ class Flexible_DONN(object):
             # print(y)
             ax.scatter(x, y)
         ax.scatter(self.dests[-1][:, 0] / Const.Lambda0, self.dests[-1][:, 1] / Const.Lambda0)
-        print(self.dests[-1][:, 0] / Const.Lambda0)
+        # print(self.dests[-1][:, 0] / Const.Lambda0)
         #ax.set_xlim(0, input_width)
         #ax.set_ylim(0, self.height)
         ax.axis('equal')
-        pyplot.savefig("./figs/" + filename + "_structure.pdf", format='pdf', bbox_inches='tight')
+        pyplot.savefig("./figures/" + filename + "_structure.pdf", format='pdf', bbox_inches='tight')
         # pyplot.show()
 
 def get_local_global_donn_example(input_neuron_num=196,
@@ -334,6 +334,7 @@ def get_local_global_donn_example(input_neuron_num=196,
                                 input_distance=7.6e-6 / Const.Lambda0,
                                 output_distance=150e-6 / Const.Lambda0,
                                 phi_init="default",
+                                first_layer_distance=30e-6 / Const.Lambda0,
                                 nonlinear=False):
     """
     Get Flexible DONN Example
@@ -358,10 +359,16 @@ def get_local_global_donn_example(input_neuron_num=196,
     #output_neuron_num = 10
     # hidden_layer_num = 1
     # layer_distance = hidden_distance * hidden_neuron_num
+
+
+
     hidden_layer_num = local_layer_num + global_layer_num
     hidden_neuron_num_list = [local_neuron_num] * local_layer_num + [global_neuron_num] * global_layer_num
     hidden_neuron_distance_list = [local_neuron_distance] * local_layer_num + [global_neuron_distance] * global_layer_num
     hidden_layer_distance_list = [local_layer_distance] * local_layer_num + [global_layer_distance] * global_layer_num
+
+    # construct first layer distance
+    hidden_layer_distance_list[0] = first_layer_distance
 
     total_width = max((input_neuron_num + 10) * input_distance, 
                         (local_neuron_num + 10) * local_neuron_distance, 

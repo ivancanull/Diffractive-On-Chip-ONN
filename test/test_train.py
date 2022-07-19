@@ -66,9 +66,10 @@ def test_multibatch_train(mode):
                                         output_neuron_num=10,
                                         input_distance=15 * t,
                                         hidden_distance=3e-6 / Const.Lambda0,
-                                        output_distance=80 * t,)
+                                        output_distance=20 * t,)
 
     # DONN_model.plot_structure()
+    dx0_t = []
     for iter in range(iter_num):
         
         (train_X, train_y), (test_X, test_y) = encoding.utils.import_MNIST()
@@ -104,8 +105,10 @@ def test_multibatch_train(mode):
         elif mode == "x0":
             lr = 1e-11
 
+        
         for i in range(DONN_model.layer_num):
             dx = lr * dx_list[i]
+            dx0 = []
             if mode == "phi":
                 if iter_num <= 20:
                     print("dphi", i, ":", dx)
@@ -116,6 +119,7 @@ def test_multibatch_train(mode):
                 if iter_num <= 20:
                     print("dx0", i, ":", dx / Const.Lambda0)
                 DONN_model.layers[i].x0 -= dx
+                dx0.append(dx)
                 #x0_outbound_l = DONN_model.layers[i].x0 < DONN_model.layers[i].x0_left_limit
                 #x0_outbound_r = DONN_model.layers[i].x0 > DONN_model.layers[i].x0_right_limit
                 #DONN_model.layers[i].x0[x0_outbound_l] = DONN_model.layers[i].x0_left_limit[x0_outbound_l]
@@ -125,14 +129,13 @@ def test_multibatch_train(mode):
             #print("out_r: ", np.abs(out[0, 0]), np.abs(out[0, 4]), np.abs(out[0, 9]))
         # print("out_r: ", np.abs(out[0, target_index]))
         DONN_model.update_dests()
-
+        dx0_t.append(dx0)
 
         # Test 
         if iter_num <= 20:
             print("Ex:", output_Ex[0])
             print("abs:", np.abs(output_Ex[0]))
             print("loss:", loss)
-
 
         elif iter % 10 == 0:
             # train accuracy, loss
@@ -186,7 +189,8 @@ def test_multibatch_train(mode):
     dict = {'iter': iter_history, 'loss': loss_history, 'train_accuracy': train_accuracy_history, 'test_accuracy': test_accuracy_history}
     df = pd.DataFrame(dict) 
     df.to_csv('./data/output/test_train.csv') 
-
+    dx0_np = np.array(dx0_t)
+    print (dx0_np.shape)
 def test_train(mode):
     """
         Test training with Different Modes Support:
@@ -215,7 +219,7 @@ def test_train(mode):
         input_dim = new_size ** 2
         input_Ex = compressed_Ex
 
-    hidden_neuron_num = 400
+    hidden_neuron_num = 40
 
     DONN_model = donn.get_donn_example(input_neuron_num=input_dim, 
                                         hidden_layer_num=2,
@@ -228,12 +232,13 @@ def test_train(mode):
                                         output_distance=80,)
 
     DONN_model.plot_structure()
-    iter = 1000
+    iter = 100
 
     dout = np.ones((example_num, 10))
     target = example_y
     print(target)
     print(input_Ex)
+
     for k in range(iter):
         
         DONN_model.update_dests()
@@ -272,6 +277,7 @@ def test_train(mode):
                 if iter <= 20:
                     print("dx0", i, ":", dx / Const.Lambda0)
                 DONN_model.layers[i].x0 -= dx
+                
                 #x0_outbound_l = DONN_model.layers[i].x0 < DONN_model.layers[i].x0_left_limit
                 #x0_outbound_r = DONN_model.layers[i].x0 > DONN_model.layers[i].x0_right_limit
                 #DONN_model.layers[i].x0[x0_outbound_l] = DONN_model.layers[i].x0_left_limit[x0_outbound_l]
@@ -290,7 +296,8 @@ def test_train(mode):
         print(DONN_model.layers[0].phi - DONN_model.layers[0].original_phi)
     elif mode == "x0":
         print((DONN_model.layers[0].x0 - DONN_model.layers[0].original_x0) / Const.Lambda0)
-
+    
+    print(dx0_np.shape)
 def main():
     starttime = time.time()
     test_multibatch_train("x0")

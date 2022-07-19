@@ -51,6 +51,9 @@ class ONN_Layer(object):
         # define batch layer and input Ex
         # Ex0 shape: (m, neuron_number)
 
+        # x0_bound is the half bound of the cloest neuron
+        self.x0_bound = Const.Lambda0 * distance / 2
+
         # the x coordinates for the input layer is an numpy array
 
         # self.coords = np.zeros([neuron_number, 2], dtype=np.float64)

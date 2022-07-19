@@ -19,7 +19,7 @@ k_RSM = 0.5
 eta_norm_coupling = 1
 delta = 0
 
-x0_bound = 1.5e-6 / Lambda0
+x0_bound = 0.55e-6 / Lambda0
 # fixed parameters
 
 # infered parameters

@@ -24,16 +24,16 @@ def test_solver(mode):
     data = {}
 
     t = 1
-    hidden_neuron_num = 400 * t
+    hidden_neuron_num = 800 * t
     
     DONN_model = donn.get_donn_example(input_neuron_num=input_dim, 
-                                        hidden_layer_num=4,
+                                        hidden_layer_num=2,
                                         phi_init=phi_init,
                                         nonlinear=False,
                                         hidden_neuron_num=hidden_neuron_num,
                                         output_neuron_num=10,
-                                        input_distance=4 * t,
-                                        hidden_distance=3e-6 / Const.Lambda0,
+                                        input_distance=12 * t,
+                                        hidden_distance=4.5e-6 / Const.Lambda0,
                                         output_distance=80 * t,)
     DONN_model.plot_structure()
 
@@ -44,16 +44,18 @@ def test_solver(mode):
 
     solver = Solver(DONN_model, data,
                     learning_rate=0.5e-11,
-                    num_epochs=20,
+                    num_epochs=10,
                     batch_size=50,
                     mode="x0",
                     verbose=False,
                     constrained=False,
                     lr_decay=0.95,
-                    checkpoint_name="x0_checkpoint_4_layer",
+                    checkpoint_name="test_heatmap",
+                    num_val_samples=10000,
                     )
     
     solver.train()
+    # solver.val_heatmap(solver.num_val_samples)
 
 def main():
     test_solver("x0")

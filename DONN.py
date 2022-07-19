@@ -38,12 +38,13 @@ def main(args):
                                                                 local_neuron_num=args.local_neuron_num,
                                                                 global_layer_num=args.global_layer_num,
                                                                 global_neuron_num=args.global_neuron_num,
-                                                                input_distance=4,
-                                                                local_neuron_distance=1.5e-6 / Const.Lambda0,
-                                                                global_neuron_distance=3e-6 / Const.Lambda0,
-                                                                local_layer_distance=15e-6 / Const.Lambda0,
-                                                                global_layer_distance=1500e-6 / Const.Lambda0,
-                                                                output_distance=80,
+                                                                input_distance=30,
+                                                                local_neuron_distance=4,
+                                                                global_neuron_distance=15,
+                                                                local_layer_distance=30,
+                                                                global_layer_distance=4000,
+                                                                first_layer_distance=4000,
+                                                                output_distance=500,
                                                                 phi_init=phi_init,
                                                                 nonlinear=False,)
     else:
@@ -54,8 +55,8 @@ def main(args):
                                             hidden_neuron_num=args.hidden_neuron_num,
                                             output_neuron_num=args.output_neuron_num,
                                             # currently not support design space exploration yet
-                                            input_distance=4,
-                                            hidden_distance=3e-6 / Const.Lambda0,
+                                            input_distance=6,
+                                            hidden_distance=6e-6 / Const.Lambda0,
                                             output_distance=80,)
 
     if args.not_plot == False:
@@ -77,8 +78,10 @@ def main(args):
                 lr_decay=args.lr_decay,
                 checkpoint_name=args.checkpoint_name,
                 )
-    
-    solver.train()
+    if args.assessment == True:
+        solver.train_assessment(args.num_assess)
+    else:
+        solver.train()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -102,10 +105,12 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', dest='batch_size', default=50, type=int, help='batch size of the model')
     parser.add_argument('--verbose', dest='verbose', default=False, type=bool, help='print=')
     parser.add_argument('--constrained', dest='constrained', default=False, type=bool, help='with constrained neurons location')
-    parser.add_argument('--lr_decay', dest='lr_decay', default=1.0, type=float, help='learning rate decay')
+    parser.add_argument('--lr_decay', dest='lr_decay', default=0.95, type=float, help='learning rate decay')
     parser.add_argument('--checkpoint_name', dest='checkpoint_name', default='temp', type=str, help='checkpoint_name')
 
     parser.add_argument('--not_plot', action='store_true', dest='not_plot', help='do not plot the structure of DONN')
+    parser.add_argument('--assessment', action='store_true', dest='assessment', help='assess the DONN structure')
+    parser.add_argument('--num_assess', dest='num_assess', default=100, type=int, help='number of iterations during struture assessment')
     args = parser.parse_args()
 
     main(args)
