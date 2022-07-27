@@ -1,0 +1,15 @@
+{
+    "ONN": [
+        {
+            "input_neuron_distance": 12,
+            "hidden_layers": [
+                {"neuron_number": 400, "neuron_distance": 6, "layer_distance": 4000}, 
+                {"neuron_number": 400, "neuron_distance": 6, "layer_distance": 100},
+                {"neuron_number": 400, "neuron_distance": 6, "layer_distance": 100}
+            ],
+            "output_neuron_distance": 10,
+            "output_layer_distance": 400,
+            "dummy": false
+        }
+    ]
+}

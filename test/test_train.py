@@ -41,7 +41,7 @@ def test_multibatch_train(mode):
     """
     batch_size = 20
     new_size = 7
-    iter_num = 100
+    iter_num = 3000
 
     input_dim = new_size ** 2
 
@@ -54,7 +54,7 @@ def test_multibatch_train(mode):
     hidden_neuron_num = 400 * t
 
     if mode == "phi":
-        phi_init = "random"
+        phi_init = "default"
     elif mode == "x0":
         phi_init = "default"
     
@@ -101,7 +101,7 @@ def test_multibatch_train(mode):
         # accuracy = np.mean(y_inf == target)
 
         if mode == "phi":
-            lr = 1
+            lr = 100
         elif mode == "x0":
             lr = 1e-11
 
@@ -110,11 +110,10 @@ def test_multibatch_train(mode):
             dx = lr * dx_list[i]
             dx0 = []
             if mode == "phi":
-                if iter_num <= 20:
-                    print("dphi", i, ":", dx)
+                # print("dphi", i, ":", dx)
                 DONN_model.layers[i].phi -= dx
-                DONN_model.layers[i].phi[DONN_model.layers[i].phi < 0] = 0 
-                DONN_model.layers[i].phi[DONN_model.layers[i].phi >= 2 * np.pi] = 2 * np.pi
+                DONN_model.layers[i].phi[DONN_model.layers[i].phi < 0] += 2 * np.pi
+                DONN_model.layers[i].phi[DONN_model.layers[i].phi >= 2 * np.pi] -= 2 * np.pi
             elif mode == "x0":
                 if iter_num <= 20:
                     print("dx0", i, ":", dx / Const.Lambda0)
@@ -268,8 +267,7 @@ def test_train(mode):
             dx = lr * dx_list[i]
 
             if mode == "phi":
-                if iter <= 20:
-                    print("dphi", i, ":", dx)
+                print("dphi", i, ":", dx)
                 DONN_model.layers[i].phi -= dx
                 DONN_model.layers[i].phi[DONN_model.layers[i].phi < 0] = 0 
                 DONN_model.layers[i].phi[DONN_model.layers[i].phi >= 2 * np.pi] = 2 * np.pi
@@ -300,7 +298,7 @@ def test_train(mode):
     print(dx0_np.shape)
 def main():
     starttime = time.time()
-    test_multibatch_train("x0")
+    test_multibatch_train("phi")
     endtime = time.time()
     print("time:", endtime - starttime)
 if __name__ == "__main__":

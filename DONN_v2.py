@@ -16,8 +16,7 @@ import utils.helpers
 
 def main(args):
     if args.mode == "phi":
-        phi_init = "random"
-        raise ValueError("Don't use mode: %s" % args.mode)
+        phi_init = "default"
     elif args.mode == "x0":
         phi_init = "default"
     else:
@@ -41,14 +40,16 @@ def main(args):
         DONNs = json.load(f)["ONN"]
     # parse json
 
-    hidden_neuron_num_list = []
-    hidden_neuron_distance_list = []
-    hidden_bound_list = []
-    hidden_layer_distance_list = []
-    
+
     for DONN_index, DONN in enumerate(DONNs):
-        print("---------DONN No. %d---------", DONN_index)
+        hidden_neuron_num_list = []
+        hidden_neuron_distance_list = []
+        hidden_bound_list = []
+        hidden_layer_distance_list = []
+    
+        print("---------DONN No. %d---------" % DONN_index)
         input_neuron_distance = DONN["input_neuron_distance"]
+        
         max_width = (input_dim + 10) * input_neuron_distance
         hidden_layers = DONN["hidden_layers"]
 
@@ -83,6 +84,8 @@ def main(args):
                             phi_init=phi_init,
                             nonlinear=False
             )
+            donn.initial_dummy_cells()
+            donn.remove_dummy_cells()
         else:
             donn = Flexible_DONN(input_neuron_num=input_dim,
                                 input_distance=input_neuron_distance,

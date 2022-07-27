@@ -141,8 +141,8 @@ class Solver(object):
             # set the threshold value
             if self.mode == "phi":
                 layer.phi = next_w
-                layer.phi[layer.phi < 0] = 0
-                layer.phi[layer.phi >= 2 * np.pi] = 2 * np.pi
+                layer.phi[layer.phi < 0] += 2 * np.pi
+                layer.phi[layer.phi >= 2 * np.pi] -= 2 * np.pi
             elif self.mode == "x0":
                 #print((next_w - w) / Const.Lambda0)
                 layer.x0 = next_w
@@ -155,7 +155,9 @@ class Solver(object):
         # OMG! I forgot this! Shit!
         self.model.update_dests()
         if self.dummy == True:
-            self.model.remove_dummy_cells()
+            self.model.remove_dummy_cells()        
+
+        return dw_list
 
     def check_accuracy(self, X, y, num_samples=None, batch_size=100):
         """
@@ -206,7 +208,12 @@ class Solver(object):
         num_iterations = self.num_epochs * iterations_per_epoch
 
         for t in range(num_iterations):
+            
+            # if t % 20 == 0 and self.dummy == True:
+            #     self.model.initial_dummy_cells()
+            #     self.model.remove_dummy_cells()
             self._step()
+
 
             # maybe print training loss
             if self.verbose and t % self.print_every == 0:
@@ -229,7 +236,6 @@ class Solver(object):
             first_it = t == 0
             last_it = t == num_iterations - 1
 
-            
             if first_it or last_it or epoch_end:
                 train_acc = self.check_accuracy(
                     self.X_train, self.y_train, num_samples=self.num_train_samples
@@ -312,8 +318,12 @@ class Solver(object):
             % (0, num_iterations, train_acc, val_acc)
         )
         for t in range(num_iterations):                
-            self._step()
-        
+            dw_list = self._step()
+            
+            # if t % 20 == 0 and self.dummy == True:
+            #     self.model.initial_dummy_cells()
+            #     self.model.remove_dummy_cells()
+
             if (t + 1) % self.print_every == 0:
                 train_acc = self.check_accuracy(
                     self.X_train, self.y_train, num_samples=self.num_train_samples
@@ -329,4 +339,10 @@ class Solver(object):
                     best_train_acc = train_acc
                     best_val_acc = val_acc
                     best_t = t + 1
+                    
+                # print((self.model.layers[1].x0 / Const.Lambda0)[0:15])
+                # print(dw_list[1][0:15])
+                # if self.dummy == True:
+                #     print((self.model.hidden_masks[1][0:15]))
+
         return (best_t, best_train_acc, best_val_acc)

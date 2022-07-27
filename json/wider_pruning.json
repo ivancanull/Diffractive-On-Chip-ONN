@@ -1,0 +1,26 @@
+{
+    "ONN": [
+        {
+            "input_neuron_distance": 12,
+            "hidden_layers": [
+                {"neuron_number": 400, "neuron_distance": 6, "layer_distance": 500}, 
+                {"neuron_number": 400, "neuron_distance": 6, "layer_distance": 500},
+                {"neuron_number": 400, "neuron_distance": 6, "layer_distance": 500}
+            ],
+            "output_neuron_distance": 80,
+            "output_layer_distance": 700,
+            "dummy": true
+        },
+        {
+            "input_neuron_distance": 1.4,
+            "hidden_layers": [
+                {"neuron_number": 400, "neuron_distance": 0.7, "layer_distance": 500}, 
+                {"neuron_number": 400, "neuron_distance": 0.7, "layer_distance": 500},
+                {"neuron_number": 400, "neuron_distance": 0.7, "layer_distance": 500}
+            ],
+            "output_neuron_distance": 10,
+            "output_layer_distance": 100,
+            "dummy": true
+        }
+    ]
+}

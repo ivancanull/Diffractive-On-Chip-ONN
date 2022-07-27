@@ -99,7 +99,16 @@ class Dummy_DONN(object):
 
         self.nonlinear = nonlinear
 
+    def initial_hidden_masks(self):
+        for i in range(self.hidden_layer_num):
+            self.hidden_masks[i + 1] = np.ones((self.hidden_neuron_num[i], ), dtype=int)
+
+    def initial_dummy_cells(self):
+        for i in range (self.hidden_layer_num):
+            self.layers[i + 1].x0 += np.random.rand(self.layers[i + 1].neuron_number) * (self.layers[i + 1].x0_bound / 5) - self.layers[i + 1].x0_bound / 10
+
     def remove_dummy_cells(self):
+        self.initial_hidden_masks()
         for i in range(self.hidden_layer_num):
             layer = self.layers[i + 1]
             last_end = layer.x0[0] + layer.x0_bound
@@ -158,7 +167,87 @@ class Dummy_DONN(object):
         if verbose == True:
             print("------------------------------------------------------")
         return input_Ex
-    
+
+    def loss_v3(self, input_Ex, y=None, backpropagate=True):
+        
+        """
+        Phase-Modulated Loss Function
+
+        Ref: T. Fu et al., “On-chip photonic diffractive optical neural 
+        network based on a spatial domain electromagnetic propagation model,” 
+        Opt. Express, vol. 29, no. 20, p. 31924, 2021, doi: 10.1364/oe.435183.
+
+        Evaluate Loss and Gradient according to the following equation:
+
+        s_k = abs(out_k) ^ 2
+        g_k = target of k
+
+        Loss: normalized mean square error
+        L = the average of (s_k / S - g_k) ^ 2
+        S = sum(s_k)
+        dEx = 4 / K * sum[(s_k / S - g_k) * (S - s_k) / (S ^ 2) * 
+              real(out_k.conj() * dEx_dphi)]
+        shape:       (n, 1)       (1, m_i)
+
+
+        """
+
+        batch_size = input_Ex.shape[:-1]
+
+        # first compute the output seprately
+        Ex_out = []
+        Ex_cache = []
+        dphi_list = {}
+
+        for layer_index, layer in enumerate(self.layers[:-1]):
+            input_Ex, cache = layer.forward_propagation(input_Ex, self.dests[layer_index])
+            Ex_out.append(input_Ex)
+            Ex_cache.append(cache)
+            # np.savetxt("./temp/layer_" + str(layer_index) + ".txt", np.abs(input_Ex))
+        # print("------------------------------------------------------")        
+        # normaliztion layer 
+
+        # define the location of the output plane
+        output_plane = self.dests[-1]
+        # Ex at output
+        output_Ex_shape = batch_size + (self.output_neuron_num, )
+        output_Ex = np.zeros(output_Ex_shape, dtype=np.complex64)
+        output_cache = []
+        for k in range(self.output_neuron_num):
+            dest_k = output_plane[k:k + 1, :]
+            Ex, cache = self.layers[-1].forward_propagation(input_Ex, dest_k)
+            output_Ex[:, k:k + 1] = Ex
+            output_cache.append(cache)
+
+        if backpropagate == True:
+            loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
+            # dout for last layer
+            dout = [np.expand_dims(np.ones(batch_size), axis=1)] * self.output_neuron_num
+            dphi = [[None] * self.output_neuron_num]
+            for i in reversed(range(self.layer_num)):
+                S = np.zeros(batch_size + (self.layers[i].neuron_number, ))
+                for k in range(self.output_neuron_num):
+                    # neurons of last layer have different cache
+                    # print("dout[%d %d] shape is: " % (i, k), dout[k].shape )
+                    if i == len(self.layers) - 1:
+                        cache = output_cache[k]
+                    else:
+                        cache = Ex_cache[i]
+                    
+                    Ex_conj = np.conj(output_Ex[:, k:k + 1])
+                    dout[k], dEx_dphi = self.layers[i].backward_propagation_holomorphic_phi_v2(dout[k], cache, Ex_conj)
+                    real_part = np.real(dEx_dphi)
+                    
+                    S = S + coeff[:, k:k + 1] * real_part
+                S = 4 * S / self.output_neuron_num
+                S = np.mean(S, axis=0)
+                dphi_list[i] = S
+                # print("S shape: ", S.shape)
+            return output_Ex, loss, dphi_list
+
+        else:
+            return output_Ex
+
     def loss_v4(self, input_Ex, y=None, backpropagate=True):
         """
         Loss Function of Dummy DONN
@@ -452,7 +541,7 @@ def test_remove_dummy_cells():
     output_neuron_num = 10
     output_distance = 30
     
-    total_width = (input_neuron_num + 10) *     
+    total_width = (input_neuron_num + 10) * input_distance
     input_bound = utils.helpers.get_bound(input_neuron_num, input_distance, total_width)
     for i in range(hidden_layer_num):
         distance = input_neuron_num * input_distance / hidden_neuron_num_list[i]

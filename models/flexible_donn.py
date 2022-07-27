@@ -162,7 +162,6 @@ class Flexible_DONN(object):
             output_Ex[:, k:k + 1] = Ex
             output_cache.append(cache)
 
-
         if backpropagate == True:
             loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
             # dout for last layer
@@ -177,14 +176,12 @@ class Flexible_DONN(object):
                         cache = output_cache[k]
                     else:
                         cache = Ex_cache[i]
-                    dout[k], dEx_dphi = self.layers[i].backward_propagation_holomorphic_phi(dout[k], cache)
                     
-                    # dEx_dphi shape (1, m_i)
-                    dEx_dphi = np.sum(dEx_dphi, axis=0, keepdims=True)
-                    # print("dEx_dphi[%d %d] shape is: " % (i, k), dEx_dphi.shape )
-                    # S shape (n, m_i)
-                    # print("s_sum shape:", coeff.shape)
-                    S = S + coeff[:, k:k + 1] * np.real(np.conj(output_Ex[:, k:k + 1]) * dEx_dphi)
+                    Ex_conj = np.conj(output_Ex[:, k:k + 1])
+                    dout[k], dEx_dphi = self.layers[i].backward_propagation_holomorphic_phi_v2(dout[k], cache, Ex_conj)
+                    real_part = np.real(dEx_dphi)
+                    
+                    S = S + coeff[:, k:k + 1] * real_part
                 S = 4 * S / self.output_neuron_num
                 S = np.mean(S, axis=0)
                 dphi_list[i] = S

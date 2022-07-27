@@ -436,6 +436,41 @@ class ONN_Layer(object):
         
         return dx, dphi.T
 
+    def backward_propagation_holomorphic_phi_v2(self, dout, cache, Ex_conj):
+        """
+        Compute Backward Propagation with Holomorphic Assumption
+        with respect to phi
+
+
+        Output_Ex = Input_Ex * Ex_w
+        (n, m_out)  (n, m_in)  (m_in, m_out)
+
+        Ex_w = TEM02 * h_w * exp(phi * 1j) (Transpose)
+        dphi = dw * Ex_w * 1j
+                (m_in, m_out)
+        Input:
+            dout: shape of (n, m_out)
+            cache: caches used for backward propagation
+        Output:
+            dphi: 
+            dx: 
+        """
+        
+        Ex0 = cache["Ex0"]
+        Ex_w = cache["Ex_w"]
+        
+        # print("Ex0 shape: ", Ex0.shape)
+        # print("Ex_w shape: ", Ex_w.shape)
+        dx = dout.dot(Ex_w.T)
+        # dw = Ex0.T.dot(dout)
+        
+        dEx_dphi = Ex_w.T * 1j
+        # print(dout.shape)
+        # print(Ex_conj.shape)
+        dphi = (dout * Ex_conj).dot(dEx_dphi) * Ex0
+        # print(dphi.shape)
+        return dx, dphi
+
     def backward_propagation_holomorphic_x0(self, dout, cache, y=None):
         """
         Compute Backward Propagation with Holomorphic Assumption
