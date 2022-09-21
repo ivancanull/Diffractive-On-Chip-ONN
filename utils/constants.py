@@ -35,8 +35,8 @@ F_coupling_coeff = eta_norm_coupling * np.exp(1j * TM02_phi_coupling) \
 # kind of useless parameters
 
 Coupling_TM02 = 1e-3 # coupling efficinecy for TM02
-
-
+pi = 3.1415927410125732
+pi_sqrt = 1.7724538509055159
 # not in use anymore
 
 # R_E0 = 0.58  # define reflectance

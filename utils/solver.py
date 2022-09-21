@@ -1,13 +1,12 @@
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
 import numpy as np
-
-from utils import optim
-from utils import constants as Const
-import numpy as np
 import models.donn as donn
 import pickle as pickle
 
+from utils import optim
+from utils import constants as Const
+from tqdm import tqdm
 from matplotlib import pyplot as plt
 
 class Solver(object):
@@ -28,8 +27,8 @@ class Solver(object):
         self.batch_size = kwargs.pop("batch_size", 10)
         self.verbose = kwargs.pop("verbose", True)
         self.lr_decay = kwargs.pop("lr_decay", 1.0)
-        self.num_train_samples = kwargs.pop("num_train_samples", 1000)
-        self.num_val_samples = kwargs.pop("num_val_samples", 1000)
+        self.num_train_samples = kwargs.pop("num_train_samples", 500)
+        self.num_val_samples = kwargs.pop("num_val_samples", 500)
         self.update_rule = kwargs.pop("update_rule", "sgd")
         self.checkpoint_name = kwargs.pop("checkpoint_name", None)
 
@@ -47,6 +46,7 @@ class Solver(object):
 
         # dummy DONN
         self.dummy = kwargs.pop("dummy", False)
+        self.compact_decoding = kwargs.pop("compact_decoding", False)
 
         self._reset()
 
@@ -188,15 +188,29 @@ class Solver(object):
         num_batches = N // batch_size
         if N % batch_size != 0:
             num_batches += 1
+
         y_pred = []
-        for i in range(num_batches):
-            start = i * batch_size
-            end = (i + 1) * batch_size
-            output_Ex = self.model.forward(X[start:end])
-            inference = np.argmax(np.abs(output_Ex), axis=1)
-            y_pred.append(inference)
-        y_pred = np.hstack(y_pred)
-        acc = np.mean(y_pred == y)
+        if self.compact_decoding == True:
+            for i in range(num_batches):
+                start = i * batch_size
+                end = (i + 1) * batch_size
+                output_Ex = np.abs(self.model.forward(X[start:end])) 
+                inference = np.zeros(output_Ex.shape, dtype=int)
+                indices = np.argpartition(output_Ex, -2, axis=1)[:, -2:]
+                inference[np.expand_dims(np.arange(batch_size), axis=1), indices] = 1
+                y_pred.append(inference)
+            y_pred = np.vstack(y_pred)
+            acc = np.mean(np.sum((y_pred == y), axis=1) == self.model.output_neuron_num)
+        else:
+            for i in range(num_batches):
+                start = i * batch_size
+                end = (i + 1) * batch_size
+                output_Ex = self.model.forward(X[start:end])
+                inference = np.argmax(np.abs(output_Ex), axis=1)
+                y_pred.append(inference)
+            y_pred = np.hstack(y_pred)
+            acc = np.mean(y_pred == y)
+            
         return acc
     
     def train(self):
@@ -207,61 +221,61 @@ class Solver(object):
         iterations_per_epoch = max(num_train // self.batch_size, 1)
         num_iterations = self.num_epochs * iterations_per_epoch
 
-        for t in range(num_iterations):
-            
-            # if t % 20 == 0 and self.dummy == True:
-            #     self.model.initial_dummy_cells()
-            #     self.model.remove_dummy_cells()
-            self._step()
+        for epoch in range(self.num_epochs):
 
+            log = [epoch]
 
-            # maybe print training loss
-            if self.verbose and t % self.print_every == 0:
-                print(
-                    "(Iteration %d / %d) loss: %f"
-                    % (t + 1, num_iterations, np.mean(self.loss_history[-1]))
-                )
-                #print(self.model.layers[0].h_neuron)
-                #self._test()
+            tk0 = tqdm(range(iterations_per_epoch), ncols=100,)
+            for t1, t2 in enumerate(tk0):
+                
+                # if t % 20 == 0 and self.dummy == True:
+                #     self.model.initial_dummy_cells()
+                #     self.model.remove_dummy_cells()
+                self._step()
 
-            # at the end of every epoch, increment the epoch counter and decay
-            # the learning rate.
-            epoch_end = (t + 1) % iterations_per_epoch == 0
-            if epoch_end:
-                self.epoch += 1
-                self.config["learning_rate"] = self.config["learning_rate"] * self.lr_decay
+                # maybe print training loss
+                if self.verbose and t1 % self.print_every == 0:
+                    print(
+                        "(Iteration %d / %d) loss: %f"
+                        % (t1 + 1, iterations_per_epoch, np.mean(self.loss_history[-1]))
+                    )
+                    #print(self.model.layers[0].h_neuron)
+                    #self._test()
+
+                # at the end of every epoch, increment the epoch counter and decay
+                # the learning rate.
+           
+            self.epoch += 1
+            self.config["learning_rate"] = self.config["learning_rate"] * self.lr_decay
 
             # check train and val accuracy on the first iteration, the last
             # iteration, and at the end of each epoch.
-            first_it = t == 0
-            last_it = t == num_iterations - 1
 
-            if first_it or last_it or epoch_end:
-                train_acc = self.check_accuracy(
-                    self.X_train, self.y_train, num_samples=self.num_train_samples
-                )
-                val_acc = self.check_accuracy(
-                    self.X_val, self.y_val, num_samples=self.num_val_samples
-                )
-                self.train_acc_history.append(train_acc)
-                self.val_acc_history.append(val_acc)
-                self._save_checkpoint()
-                
-                for layer_index, layer in enumerate(self.model.layers):
-                    if self.verbose and self.mode == "x0":
-                        print ("delta x0 for layer %d:" % layer_index, (layer.x0 - layer.original_x0) / Const.Lambda0)
+            train_acc = self.check_accuracy(
+                self.X_train, self.y_train, num_samples=self.num_train_samples 
+            )
+            val_acc = self.check_accuracy(
+                self.X_val, self.y_val, num_samples=self.num_val_samples
+            )
+            self.train_acc_history.append(train_acc)
+            self.val_acc_history.append(val_acc)
+            self._save_checkpoint()
+            
+            for layer_index, layer in enumerate(self.model.layers):
+                if self.verbose and self.mode == "x0":
+                    print ("delta x0 for layer %d:" % layer_index, (layer.x0 - layer.original_x0) / Const.Lambda0)
 
-                print(
-                    "(Epoch %d / %d) train acc: %f; val_acc: %f"
-                    % (self.epoch, self.num_epochs, train_acc, val_acc)
-                )
+            print(
+                "(Epoch %d / %d) train acc: %f; val_acc: %f"
+                % (self.epoch, self.num_epochs, train_acc, val_acc)
+            )
 
-                # Keep track of the best model
-                if val_acc > self.best_val_acc:
-                    self.best_val_acc = val_acc
-                    self.best_model = self.model
+            # Keep track of the best model
+            if val_acc > self.best_val_acc:
+                self.best_val_acc = val_acc
+                self.best_model = self.model
 
-        # At the end of training swap the best params into the model
+            # At the end of training swap the best params into the model
         return self.best_model
 
     def val_heatmap(self, num_samples):
@@ -340,6 +354,7 @@ class Solver(object):
                     best_val_acc = val_acc
                     best_t = t + 1
                     
+                
                 # print((self.model.layers[1].x0 / Const.Lambda0)[0:15])
                 # print(dw_list[1][0:15])
                 # if self.dummy == True:

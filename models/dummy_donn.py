@@ -31,6 +31,7 @@ class Dummy_DONN(object):
                 output_layer_distance,
                 phi_init="default",
                 nonlinear=False,
+                compact_decoding=False,
                 ) -> None:
     
         self.layers = []    
@@ -98,6 +99,7 @@ class Dummy_DONN(object):
         self.dests.append(dests)
 
         self.nonlinear = nonlinear
+        self.compact_decoding = compact_decoding
 
     def initial_hidden_masks(self):
         for i in range(self.hidden_layer_num):
@@ -220,7 +222,10 @@ class Dummy_DONN(object):
             output_cache.append(cache)
 
         if backpropagate == True:
-            loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
+            if self.compact_decoding == True:
+                loss, coeff = Layers.normalized_mean_square_error_v2(output_Ex, y)
+            else:
+                loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
             # dout for last layer
             dout = [np.expand_dims(np.ones(batch_size), axis=1)] * self.output_neuron_num
             dphi = [[None] * self.output_neuron_num]
@@ -285,7 +290,10 @@ class Dummy_DONN(object):
             output_cache.append(cache)
 
         if backpropagate == True:
-            loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
+            if self.compact_decoding == True:
+                loss, coeff = Layers.normalized_mean_square_error_v2(output_Ex, y)
+            else:
+                loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
             # dout for last layer
             dout = [np.expand_dims(np.ones(batch_size), axis=1)] * self.output_neuron_num
             # dx0 = [[None] * self.output_neuron_num]

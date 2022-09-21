@@ -5,7 +5,10 @@ sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
 import numpy as np
 import pandas as pd
 import csv
+import cmath
+import torch
 
+from models.onn_torch import DiffractiveLayer
 from models.onn_layer import ONN_Layer
 import utils.plot
 from utils import constants as Const
@@ -70,7 +73,6 @@ def verify():
 
 def verify_decoupling():
 
-    
     # print(truth_data)
     
     #Const.w_Si = 0.5e-6
@@ -181,6 +183,127 @@ def verify_decoupling():
     plt.savefig('./figures/Gauss-Beam.pdf', format='pdf', bbox_inches='tight')
     plt.show()
 
+def verify_decoupling_torch():
+
+    # print(truth_data)
+    
+    #Const.w_Si = 0.5e-6
+    #Const.w0 = 0.7e-6
+    Const.eta_norm_coupling = 1 / cmath.sqrt(Const.w_Si / Const.w0 / Const.pi_sqrt)
+    Const.TM02_phi_coupling = 0
+    Const.F_coupling_coeff = Const.eta_norm_coupling * cmath.exp(1j * Const.TM02_phi_coupling) \
+                             * cmath.sqrt(Const.w_Si / Const.w0 / Const.pi_sqrt)
+    h_neuron = 1e-6
+    w_neuron = 0.9e-6
+    y0 = 0
+    # define neuron number
+    neuron_num = 1
+    # construct an ONN layer
+    onn_layer = DiffractiveLayer(neuron_number=neuron_num, 
+                                    bound=0,
+                                    distance=9e-6, 
+                                    y=y0,
+                                    h_neuron=h_neuron, 
+                                    w_neuron=w_neuron,
+                                    )
+    # define input Ex
+    input_Ex_real = torch.ones((1, neuron_num))
+    input_Ex_imag = torch.zeros((1, neuron_num))
+    input_Ex = torch.complex(input_Ex_real, input_Ex_imag)
+
+    H_area = 10e-6
+    sample_num = 2000
+    # define dests location
+    dests = torch.zeros((sample_num, 2))
+    
+    # dests[:, 0] = 1e-9
+    # dests[:, 1] = np.linspace(y0, -H_area, sample_num)
+
+    x_cords = torch.ones((sample_num, 1)) * 1e-9
+    y_cords = torch.linspace(y0, -H_area, sample_num).unsqueeze(-1)
+
+    Ex = onn_layer.calculate_Ex(input_Ex, x_cords, y_cords)
+    # dests[:, 0] = truth_data[0] * 1e-6 + onn_layer.x0
+    
+    # Ex, cache = onn_layer.forward_propagation(input_Ex, dests)
+    Ex = Ex.squeeze(0).detach().numpy()
+
+    # decoupling_results = np.zeros((sample_num, 2))
+    # decoupling_results[:, 0] = dests[:,1]
+    # decoupling_results[:, 1] = np.real(Ex)
+    # np.savetxt("./results/decoupling_results.csv", decoupling_results, delimiter=',')
+    plt.subplot(2, 3, 1)
+    truth_data = pd.read_csv('./data/E_radium_w=2.csv', header=None)
+    plt.plot(-truth_data[0], truth_data[1], label='simulated')
+    plt.plot(y_cords.squeeze(-1), np.real(Ex), label='modeled')
+    plt.xlabel('y position(um)')
+    plt.ylabel('Normalized Electrical Field')
+    plt.legend()
+    plt.xlim([y0, -H_area])
+    
+    plt.subplot(2, 3, 2)
+    truth_data = pd.read_csv('./data/E_abs_radium_w=2.csv', header=None)
+    plt.plot(-truth_data[0], truth_data[1], label='simulated')
+    plt.plot(y_cords.squeeze(-1), np.abs(Ex), label='modeled')
+    plt.xlabel('y position(um)')
+    plt.ylabel('Normalized Amplitude of Electrical Field')
+    plt.legend()
+    plt.xlim([y0, -H_area])
+    # plt.savefig('Gauss-Beam.pdf', format='pdf', bbox_inches='tight')
+    
+    R0 = 8.5e-6
+    theta = torch.linspace(-Const.pi / 2, Const.pi / 2, sample_num)
+    x_cords = R0 * torch.sin(theta).unsqueeze(-1)
+    y_cords = y0 - h_neuron - R0 * torch.cos(theta).unsqueeze(-1)
+    Ex = onn_layer.calculate_Ex(input_Ex, x_cords, y_cords)
+    Ex = Ex.squeeze(0).detach().numpy()
+
+    plt.subplot(2, 3, 3)
+    truth_data = pd.read_csv('./data/E_abs_angle_w=2.csv', header=None)
+    plt.plot(-truth_data[0], truth_data[1], label='simulated')
+    plt.plot(theta, np.abs(Ex), label='modeled')
+    plt.xlabel('Angle(rad)')
+    plt.ylabel('Normalized Amplitude of Electrical Field')
+    plt.legend()
+    plt.xlim([-np.pi / 2, np.pi / 2])
+
+    plt.subplot(2, 3, 4)
+    truth_data = pd.read_csv('./data/E_arg_angle_w=2.csv', header=None)
+    plt.plot(truth_data[0], truth_data[1], label='simulated')
+    plt.plot(theta, arg_cal(Ex), label='modeled')
+    plt.xlabel('Angle(rad)')
+    plt.ylabel('Phase of Electrical Field')
+    plt.legend()
+    plt.xlim([-np.pi / 2, np.pi / 2])
+
+    w_chip = 20e-6
+    x_cords = torch.linspace(-w_chip / 2, w_chip / 2, sample_num).unsqueeze(-1)
+    y_cords = torch.ones(sample_num, 1) * (y0 - h_neuron - R0)
+    Ex = onn_layer.calculate_Ex(input_Ex, x_cords, y_cords)
+    Ex = Ex.squeeze(0).detach().numpy()
+
+    plt.subplot(2, 3, 5)
+    truth_data = pd.read_csv('./data/E_abs_horizontal_w=2.csv', header=None)
+    plt.plot(truth_data[0], truth_data[1], label='simulated')
+    plt.plot(x_cords.squeeze(-1), np.abs(Ex), label='modeled')
+    plt.xlabel('x position (um)')
+    plt.ylabel('Normalized Amplitude of Electrical Field')
+    plt.legend()
+    plt.xlim([-10e-6, 10e-6])    
+    # plt.savefig('Gauss-Beam.pdf', format='pdf', bbox_inches='tight')
+    
+    plt.subplot(2, 3, 6)
+    truth_data = pd.read_csv('./data/E_arg_horizontal_w=2.csv', header=None)
+    plt.plot(truth_data[0], truth_data[1], label='simulated')
+    plt.plot(x_cords.squeeze(-1), arg_cal(Ex), label='modeled')
+    plt.xlabel('x position (um)')
+    plt.ylabel('Phase of Electrical Field')
+    plt.legend()
+    plt.xlim([-10e-6, 10e-6])    
+    
+    plt.savefig('./figures/Gauss-Beam.pdf', format='pdf', bbox_inches='tight')
+    plt.show()
+
 def arg_cal(Ex):
     arg = np.zeros(Ex.shape)
     Ex_real = np.real(Ex)
@@ -192,8 +315,9 @@ def arg_cal(Ex):
     arg[s_angel < 0] = -np.arccos(c_angel)[s_angel < 0]
     return arg
 
+
 def main():
-    test_plot()
+    verify_decoupling_torch()
 
 
 

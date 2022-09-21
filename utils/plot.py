@@ -178,6 +178,9 @@ def plot_whole_field(donn: DONN,
     plt.colorbar(cset).set_label('Ex' + mode)
     plt.show()
 
+def plot_distribution(model, X):
+    y = model.forward(X)
+
 def main():
     new_size = 5
     neuron_number = new_size ** 2

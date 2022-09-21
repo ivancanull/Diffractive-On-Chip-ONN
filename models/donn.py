@@ -42,6 +42,7 @@ class DONN(object):
                  layer_distance,
                  phi_init="default",
                  nonlinear=False,
+                 compact_decoding=False,
                  ) -> None:
         super().__init__()
         
@@ -108,6 +109,7 @@ class DONN(object):
         self.dests.append(dests)
 
         self.nonlinear = nonlinear
+        self.compact_decoding = compact_decoding
         """
         
         # define the output Ex
@@ -318,7 +320,10 @@ class DONN(object):
             output_cache.append(cache)
 
         if backpropagate == True:
-            loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
+            if self.compact_decoding == True:
+                loss, coeff = Layers.normalized_mean_square_error_v2(output_Ex, y)
+            else:
+                loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
             # dout for last layer
             dout = [np.expand_dims(np.ones(batch_size), axis=1)] * self.output_neuron_num
             dphi = [[None] * self.output_neuron_num]
@@ -395,7 +400,10 @@ class DONN(object):
 
 
         if backpropagate == True:
-            loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
+            if self.compact_decoding == True:
+                loss, coeff = Layers.normalized_mean_square_error_v2(output_Ex, y)
+            else:
+                loss, coeff = Layers.normalized_mean_square_error(output_Ex, y, g_true=1, g_false=0, non_linear=self.nonlinear)
             # dout for last layer
             dout = [np.expand_dims(np.ones(batch_size), axis=1)] * self.output_neuron_num
             # dx0 = [[None] * self.output_neuron_num]
@@ -480,7 +488,8 @@ def get_donn_example(input_neuron_num=25,
                      output_distance=160,
                      phi_init="default",
                      layer_distance=1600,
-                     nonlinear=False):
+                     nonlinear=False,
+                     compact_decoding=False):
     ## construct the deep onn structure
     # define the structure parameters
 
@@ -518,7 +527,8 @@ def get_donn_example(input_neuron_num=25,
                      hidden_bound=hidden_bound,
                      layer_distance=layer_distance,
                      phi_init=phi_init,
-                     nonlinear=nonlinear
+                     nonlinear=nonlinear,
+                     compact_decoding=compact_decoding,
                      )
     
     return test_donn

@@ -117,7 +117,49 @@ def normalized_mean_square_error(m, g, g_true=1, g_false=0, non_linear=False, no
     loss = np.mean((s_norm - target) ** 2, axis=1)
     return loss, coeff
 
+def normalized_mean_square_error_v2(m, g,):
+    """
+    Computes the mean square error between output plane intensity m and target g where g is the same shape of m
 
+    Inputs:
+        m: Output plane intensity of shape (N, C)
+        g: Vector of labels, of shape (N, C)
+        L = mean((S_r_1 + S_r_2) / S_total - Target) ^ 2 + (S_w / S_total - Target) ^ 2)
+    
+    Returns a tuple of:
+        loss: Scalar giving the loss
+        S: sum of s
+        s_minus_g: s / S - g
+        coeff: (s_k / S - g_k) * (S - s_k) / (S ^ 2)
+    """
+    N = m.shape[0]
+    c = m.shape[1]
+
+    s = np.abs(m) ** 2
+    S = np.sum(s, axis=1, keepdims=True)
+
+    
+    s_right = s * g
+    s_wrong = s * (1 - g)
+    
+    s_right_sum = np.sum(s_right, axis=1, keepdims=True)
+    s_norm = s / S
+    loss_new = ((np.sum((s_wrong / S) ** 2, axis=1, keepdims=True) + (s_right_sum / S - 1) ** 2) / c).squeeze(-1)
+    
+    coeff_new_1 = s_norm * (S - s) / S ** 2 * (1 - g)
+    coeff_new_2 = (s_right_sum / S - 1) * (S - s) / S ** 2 * g
+    coeff_new = coeff_new_1 + coeff_new_2
+    coeff = (s_norm - g) * (S - s) / S ** 2
+    # print(coeff)
+    # s / sum of s - g
+    loss = np.mean((s_norm - g) ** 2, axis=1)
+    # print(loss_new[0:10])
+    # print((s/S)[0:10])
+    # print((s_wrong/S)[0:10])
+    # print(coeff_new_1[0:10])
+    # print(coeff_new[0:10])
+    # print(loss[0:10])
+    return loss, coeff
 
 def test_target():
     batch_size = 100

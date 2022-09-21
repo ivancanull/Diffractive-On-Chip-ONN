@@ -23,17 +23,17 @@ def main(args):
         raise ValueError("Invalid mode: %s" % args.mode)
     
     if args.encoding  == "amplitude":
-        (train_X, train_y), (test_X, test_y) = encoding.utils.load_data(args.size)
+        (train_X, train_y), (test_X, test_y) = encoding.utils.load_data(args.size, compact=args.compact_decoding)
     elif args.encoding == "phase":
-        (train_X, train_y), (test_X, test_y) = encoding.utils.load_data(args.size)
+        (train_X, train_y), (test_X, test_y) = encoding.utils.load_data(args.size, compact=args.compact_decoding)
         (train_X, train_y), (test_X, test_y) = encoding.utils.phase_encoding(train_X, train_y, test_X, test_y)
     elif args.encoding == "fft":
-        (train_X, train_y), (test_X, test_y) = encoding.utils.load_data(args.size, fft=True)
+        (train_X, train_y), (test_X, test_y) = encoding.utils.load_data(args.size, fft=True, compact=args.compact_decoding)
     else:
         raise ValueError("Invalid encoding: %s" % args.encoding)
 
     input_dim = args.size ** 2
-    output_dim = 10
+    output_dim = args.output_dim
 
     # read json
     with open(args.json_file, 'r') as f:
@@ -69,7 +69,7 @@ def main(args):
         output_bound = utils.helpers.get_bound(output_dim, output_neuron_distance, max_width)
 
         if DONN["dummy"] == True:
-            donn = Dummy_DONN(input_neuron_num=input_dim,
+            donn_model = Dummy_DONN(input_neuron_num=input_dim,
                             input_distance=input_neuron_distance,
                             input_bound=input_bound,
                             output_neuron_num=output_dim,
@@ -82,12 +82,13 @@ def main(args):
                             hidden_layer_distance=hidden_layer_distance_list,
                             output_layer_distance=DONN["output_layer_distance"],
                             phi_init=phi_init,
-                            nonlinear=False
+                            nonlinear=False,
+                            compact_decoding=args.compact_decoding,
             )
-            donn.initial_dummy_cells()
-            donn.remove_dummy_cells()
+            donn_model.initial_dummy_cells()
+            donn_model.remove_dummy_cells()
         else:
-            donn = Flexible_DONN(input_neuron_num=input_dim,
+            donn_model = Flexible_DONN(input_neuron_num=input_dim,
                                 input_distance=input_neuron_distance,
                                 input_bound=input_bound,
                                 output_neuron_num=output_dim,
@@ -100,10 +101,11 @@ def main(args):
                                 hidden_layer_distance=hidden_layer_distance_list,
                                 output_layer_distance=DONN["output_layer_distance"],
                                 phi_init=phi_init,
-                                nonlinear=False
+                                nonlinear=False,
+                                compact_decoding=args.compact_decoding,
             )
         if args.not_plot == False:
-            donn.plot_structure(args.checkpoint_name)
+            donn_model.plot_structure(args.checkpoint_name)
 
         data = {}
         data["X_train"] = train_X
@@ -111,7 +113,7 @@ def main(args):
         data["X_val"] = test_X
         data["y_val"] = test_y
 
-        solver = Solver(donn, data,
+        solver = Solver(donn_model, data,
                     learning_rate=args.learning_rate,
                     num_epochs=args.num_epochs,
                     batch_size=args.batch_size,
@@ -121,7 +123,9 @@ def main(args):
                     lr_decay=args.lr_decay,
                     checkpoint_name=args.checkpoint_name,
                     dummy=DONN["dummy"],
+                    compact_decoding=args.compact_decoding,
                     )
+
         if args.assessment == True:
             solver.train_assessment(args.num_assess)
         else:
@@ -146,6 +150,10 @@ if __name__ == '__main__':
     parser.add_argument('--not_plot', action='store_true', dest='not_plot', help='do not plot the structure of DONN')
     parser.add_argument('--assessment', action='store_true', dest='assessment', help='assess the DONN structure')
     parser.add_argument('--num_assess', dest='num_assess', default=100, type=int, help='number of iterations during struture assessment')
+    
+    # double decoding
+    parser.add_argument('--compact_decoding', action='store_true', dest='compact_decoding', help='decoding in a compact way')
+    parser.add_argument('--output_dim', dest='output_dim', default=10, type=int, help='dimension of the output decoder')
     args = parser.parse_args()
 
     main(args)

@@ -34,7 +34,6 @@ def test_fft():
 
     print(input_Ex)    
 
-
 def test_multibatch_train(mode):
     """
         Test training with multiple batches
@@ -89,6 +88,7 @@ def test_multibatch_train(mode):
             input_dim = new_size ** 2
             input_Ex = compressed_Ex
             target = compressed_y
+        
         hidden_neuron_num = 200
 
 
@@ -295,10 +295,9 @@ def test_train(mode):
     elif mode == "x0":
         print((DONN_model.layers[0].x0 - DONN_model.layers[0].original_x0) / Const.Lambda0)
     
-    print(dx0_np.shape)
 def main():
     starttime = time.time()
-    test_multibatch_train("phi")
+    test_multibatch_train("x0")
     endtime = time.time()
     print("time:", endtime - starttime)
 if __name__ == "__main__":

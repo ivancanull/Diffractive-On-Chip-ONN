@@ -8,7 +8,29 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
 import encoding.fft
 
-def load_data(new_size, fft=False):
+mapping = {0: [0, 1],
+           1: [0, 2],
+           2: [0, 3],
+           3: [1, 2],
+           4: [0, 4],
+           5: [1, 3],
+           6: [2, 3],
+           7: [1, 4],
+           8: [2, 4],
+           9: [3, 4]}
+
+def convert_y_to_compact(y):
+    dim = y.shape[0]
+    new_y = np.zeros((dim, 5), dtype=int)
+    for i in range(dim):
+        new_y[i][mapping[y[i]]] = 1
+    return new_y
+        
+def convert_compact_to_y(y_c):
+    dim = y_c.shape[0]
+    y = np.zeros((dim, 1), dtype=int)
+
+def load_data(new_size, fft=False, compact=False):
     (train_X, train_y), (test_X, test_y) = import_MNIST()
 
     #example_input = get_MNIST_example(batch_size)
@@ -19,7 +41,12 @@ def load_data(new_size, fft=False):
 
     if os.path.isfile(out_file):
         npz_file = np.load(out_file)
-        return (npz_file['train_X'], npz_file['train_y']), (npz_file['test_X'], npz_file['test_y'])
+
+        # compact decoding
+        if compact == True:
+            return (npz_file['train_X'], convert_y_to_compact(npz_file['train_y'])), (npz_file['test_X'], convert_y_to_compact(npz_file['test_y']))
+        else:
+            return (npz_file['train_X'], npz_file['train_y']), (npz_file['test_X'], npz_file['test_y'])
     else:
         dim = train_X.shape[0]
         compressed_train_X = np.zeros((dim, new_size, new_size))
@@ -38,6 +65,11 @@ def load_data(new_size, fft=False):
             for i in range(dim):
                 compressed_test_X[i] = cv2.resize(test_X[i], (new_size, new_size))
         compressed_test_X = np.reshape(compressed_test_X, (dim, new_size ** 2))
+        
+        # compact decoding
+        if compact == True:
+            train_y = convert_y_to_compact(train_y)
+            test_y =  convert_y_to_compact(test_y)
         
         with open(out_file, 'wb') as f:
             np.savez(f, train_X=compressed_train_X, train_y=train_y, test_X=compressed_test_X, test_y=test_y)
@@ -129,9 +161,19 @@ def test():
         plt.imshow(example_x[i], cmap=plt.get_cmap('gray'))
     plt.show()
     (compressed_Ex, sampled_y) = get_training_example(4, 10)
-    
+
+def test_convert():
+    (train_X, train_y), (test_X, test_y) = import_MNIST()
+    new_y = convert_y_to_compact(test_y)[0:10]
+    print(new_y)
+    c_y = np.zeros(new_y.shape, dtype=int)
+    indices = np.argpartition(new_y, -2, axis=1)[:, -2:]
+    c_y[np.expand_dims(np.arange(10,), axis=1), indices] = 1
+    print(indices)
+    print(np.sum((c_y == new_y), axis=1) == 5)
+
 def main():
-    import_MNIST()
+    test_convert()
 
 if __name__ == '__main__':
     main()
