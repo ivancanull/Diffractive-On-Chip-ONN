@@ -9,7 +9,7 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "args": ["--json_file", "./json/Exp_01.json",
+            "args": ["--json_file", "./json/example.json",
                      "--learning_rate", "1e-8"],
             "console": "integratedTerminal",
             "justMyCode": true

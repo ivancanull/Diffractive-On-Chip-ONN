@@ -112,12 +112,13 @@ class DONN(tf.keras.Model):
                 hidden_bound,
                 hidden_layer_distance,
                 output_layer_distance,
-                output_dim):
+                output_dim,
+                mode="x0"):
 
         super(DONN, self).__init__()   
         self.dls = [] # diffractive layers
         self.layer_num = hidden_layer_num + 1
-        
+        self.mode = mode
         # define layer distance
         self.ys = [0]
         for i in range(hidden_layer_num):
@@ -139,8 +140,9 @@ class DONN(tf.keras.Model):
                                                 bound=hidden_bound[i], 
                                                 y=self.ys[i + 1], 
                                                 y_next=self.ys[i + 2],
-                                                mode="x0"))
+                                                mode=self.mode))
         
+        ################ method 1 ################
         # detector and output layer
         x0_d = np.linspace(output_bound, output_bound + output_distance * (output_neuron_num - 1), output_neuron_num) * Const.Lambda0 
 
@@ -153,28 +155,27 @@ class DONN(tf.keras.Model):
         self.x0_d = self.add_weight(name="x0_d", shape=[output_neuron_num], dtype=tf.float32, initializer=tf.constant_initializer(x0_d), trainable=False)
         self.dw = tf.constant(dw, dtype=tf.float32)
 
+        ################ method 2 ################
         # detector and output layer with 10 detectors only
-        x0_d = np.linspace(output_bound, output_bound + output_distance * (output_neuron_num - 1), output_neuron_num) * Const.Lambda0 
-        dw = np.zeros([output_neuron_num, output_dim]) # detector to output weight
-        x0_n = np.zeros([output_dim])
-        # dn = output_neuron_num // (output_dim * 2 + 1)
+        # x0_d = np.linspace(output_bound, output_bound + output_distance * (output_neuron_num - 1), output_neuron_num) * Const.Lambda0 
+        # dw = np.zeros([output_neuron_num, output_dim]) # detector to output weight
+        # x0_n = np.zeros([output_dim])
+        # # dn = output_neuron_num // (output_dim * 2 + 1)
 
-        dn = output_neuron_num // (output_dim)
-        if (dn % 2) == 0:
-            dn -= 1
-        rn = (output_neuron_num - dn * output_dim) // 2 - 1
-        for i in range(output_dim):
-            x0_n[i] = x0_d[rn + i * dn + (dn + 1) // 2]
-        self.x0_d = self.add_weight(name="x0_d", shape=[output_dim], dtype=tf.float32, initializer=tf.constant_initializer(x0_n), trainable=False)
-        
-        
+        # dn = output_neuron_num // (output_dim)
+        # if (dn % 2) == 0:
+        #     dn -= 1
+        # rn = (output_neuron_num - dn * output_dim) // 2 - 1
+        # for i in range(output_dim):
+        #     x0_n[i] = x0_d[rn + i * dn + (dn + 1) // 2]
+        # self.x0_d = self.add_weight(name="x0_d", shape=[output_dim], dtype=tf.float32, initializer=tf.constant_initializer(x0_n), trainable=False)
 
     def call(self, x):
         for i in range(self.layer_num - 1):
             x = self.dls[i](self.layers[i + 1].x0, x)
         x = self.dls[self.layer_num - 1](self.x0_d, x)
         x = tf.abs(x)
-        # x = tf.matmul(x, self.dw) 1
+        x = tf.matmul(x, self.dw) 
         x = tf.keras.activations.softmax(x)
         return x
 

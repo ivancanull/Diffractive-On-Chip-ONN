@@ -15,10 +15,7 @@ import utils.helpers
 from utils import constants as Const
 from onn import DONN
 
-tf.autograph.set_verbosity(10)
 def main(args):
-
-
 
     # read json
     with open(args.json_file, 'r') as f:
@@ -124,26 +121,60 @@ def main(args):
                     output_dim=output_dim,
                     mode=donn["mode"])
 
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=args.learning_rate, ),
-                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                  metrics=['accuracy'])
+        # model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=args.learning_rate, ),
+        #           loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        #           metrics=['accuracy'])
 
-        checkpoint_path = "temp/tfckpt/"
-        checkpoint_path += donn["name"]
+        # checkpoint_path = "temp/tfckpt/"
+        # checkpoint_path += donn["name"]
 
-        # create a callback that saves the model's weights
-        cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                        monitor="val_accuracy",
-                                                        save_weights_only=True,)
-        # lgdir = os.path("/temp/tfcsv/" + donn["name"] + ".csv")
-        csv_logger = tf.keras.callbacks.CSVLogger("./temp/tfcsv/training.csv", separator=',', append=True)
+        # # create a callback that saves the model's weights
+        # cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+        #                                                 monitor="val_accuracy",
+        #                                                 save_weights_only=True,)
+        # # lgdir = os.path("/temp/tfcsv/" + donn["name"] + ".csv")
+        # csv_logger = tf.keras.callbacks.CSVLogger("./temp/tfcsv/training.csv", separator=',', append=True)
 
-        model.fit(x=train_dataset,
-                epochs=args.num_epochs,
-                validation_data=val_dataset,
-                callbacks=[cp_callback, csv_logger])
+        # model.fit(x=train_dataset,
+        #         epochs=args.num_epochs,
+        #         validation_data=val_dataset,
+        #         callbacks=[cp_callback, csv_logger])
 
-        model.evaluate(x=test_dataset)
+        # model.evaluate(x=test_dataset)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=args.learning_rate, )
+        loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        
+        def loss(model, x, y, training):
+            # training=training is needed only if there are layers with different
+            # behavior during training versus inference (e.g. Dropout).
+            y_ = model(x, training=training)
+
+            return loss_fn(y_true=y, y_pred=y_)
+        def grad(model, inputs, targets):
+            with tf.GradientTape() as tape:
+                loss_value = loss(model, inputs, targets, training=True)
+            return loss_value, tape.gradient(loss_value, model.trainable_variables)
+        
+        train_loss_results = []
+        train_accuracy_results = []
+        for epoch in range(args.num_epochs):
+
+            epoch_loss_avg = tf.keras.metrics.Mean()
+            epoch_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
+            
+            for X, y in train_dataset:
+                loss_value, grads = grad(model, X, y)
+                optimizer.apply_gradients(zip(grads, model.trainable_variables))
+            
+                epoch_loss_avg.update_state(loss_value)  # Add current batch loss
+                epoch_accuracy.update_state(y, model(X, training=True))
+        
+            train_loss_results.append(epoch_loss_avg.result())
+            train_accuracy_results.append(epoch_accuracy.result())
+            
+            print("Epoch {:03d}: Loss: {:.3f}, Accuracy: {:.3%}".format(epoch,
+                                                                epoch_loss_avg.result(),
+                                                                epoch_accuracy.result()))
 
         
 
@@ -151,7 +182,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # parser.add_argument('--size', dest='size', default=28, type=int, help='dimension of the input image')
-    # parser.add_argument('--mode', dest='mode', default='x0', type=str, help='mode of the configuration')
+    parser.add_argument('--mode', dest='mode', default='x0', type=str, help='mode of the configuration')
     # parser.add_argument('--encoding', dest='encoding', default='amplitude', type=str, help='encoding of the input signal')
 
     parser.add_argument('--json_file', dest='json_file', default='./json/example.json', type=str, help='structure definition json file')

@@ -1,0 +1,23 @@
+{
+    "ONN": [
+        {
+            "name": "Layer_5_90_12",
+            "mode": "phase",
+            "encoding": "amplitude",
+            "input_size": 10,
+            "input_neuron_distance": 12,
+            "hidden_layers": [
+                {"neuron_number": 90, "neuron_distance": 12, "layer_distance": 1080},
+                {"neuron_number": 90, "neuron_distance": 12, "layer_distance": 1080},
+                {"neuron_number": 90, "neuron_distance": 12, "layer_distance": 1080},
+                {"neuron_number": 90, "neuron_distance": 12, "layer_distance": 1080},
+                {"neuron_number": 90, "neuron_distance": 12, "layer_distance": 1080} 
+            ],
+            "output_neuron_number": 90,
+            "output_neuron_distance": 12,
+            "output_layer_distance": 1080,
+            "dummy": false
+        }
+    ]
+    
+}

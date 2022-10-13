@@ -13,7 +13,7 @@ import encoding.utils
 def fft_2D(imgs: np.ndarray, 
            output_dim: int) -> np.ndarray:
     """
-    Convert Images to Ex input. Please pay attention that output_dim = 2 * k + 1
+    Convert Images to Ex input.
     
     Args:
         imgs: m images of dimension (n * n), total shape is (m, n, n) or (n, n, n)
@@ -24,16 +24,16 @@ def fft_2D(imgs: np.ndarray,
         input_Ex: encoded input Ex of (m, k) or (k, )
     """
     
-    if (output_dim - 1) % 2 != 0:
-        raise ValueError("output_dim must be an odd number")
+    # if (output_dim - 1) % 2 != 0:
+    #     raise ValueError("output_dim must be an odd number")
 
     fft2_result = np.fft.fft2(imgs)
     shifted_fft = np.fft.fftshift(fft2_result,  axes=(1, 2, ))
 
-    rows = imgs.shape[-2] // 2
-    cols = imgs.shape[-1] // 2
-    new_size = int((output_dim - 1) // 2)
-    masked_shifted_fft = shifted_fft[:, rows - new_size : rows + new_size + 1, cols - new_size : cols + new_size + 1]
+    rows = imgs.shape[-2] 
+    cols = imgs.shape[-1]
+
+    masked_shifted_fft = shifted_fft[:, (rows - output_dim) // 2 : (rows - output_dim) // 2 + output_dim, (cols - output_dim) // 2 : (cols - output_dim) // 2 + output_dim]
     input_Ex = masked_shifted_fft.reshape(masked_shifted_fft.shape[:-2] + (-1, ))
     return input_Ex
 
