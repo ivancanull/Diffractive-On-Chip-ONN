@@ -1,6 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import sys, os
-sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..', '..')))
+import pandas as pd
+
+sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
 
 
 from matplotlib import pyplot as plt
@@ -13,6 +15,27 @@ from utils import constants as Const
 import encoding.utils
 import utils.helpers
 from models.donn import DONN
+
+def plot_history(history_file, filename):
+    df = pd.read_csv(history_file)
+    loss_history = df["loss"]
+    accuracy_history = df["accuracy"]
+    # for idx, loss in enumerate(loss_history):
+    #     # print(loss[(loss.find('(') + 1): loss.find(',')])
+    #     loss_history[idx] = float(loss[(loss.find('(') + 1): loss.find(',')])
+    # for idx, accuracy in enumerate(accuracy_history):
+    #     # print(loss[(loss.find('(') + 1): loss.find(',')])
+    #     accuracy_history[idx] = float(accuracy[(accuracy.find('(') + 1): accuracy.find(',')])
+    fig, ax1 = plt.subplots()
+    ax1.plot(loss_history.index, loss_history)
+    ax2 = ax1.twinx()
+    ax2.plot(accuracy_history.index, accuracy_history)
+    ax1.set_xlabel("Iterations")
+    ax1.set_ylabel("Epoch Loss")
+    ax2.set_ylabel("Epoch Accuracy")
+
+    fig.show()
+    fig.savefig("./figures/" + filename)
 
 def plot_layer_pattern(layer: ONN_Layer,
                        input_Ex: np.ndarray,
@@ -182,6 +205,9 @@ def plot_distribution(model, X):
     y = model.forward(X)
 
 def main():
+
+    plot_history("temp/tfcsv/Layer_5_784_12_dummy_history.csv")
+
     new_size = 5
     neuron_number = new_size ** 2
     distance = 6
@@ -190,7 +216,7 @@ def main():
 
     bound = utils.helpers.get_bound(neuron_number, distance, total_width)
     test_layer = ONN_Layer(neuron_number=new_size ** 2, distance=10, bound=bound)
-    plot_layer_pattern(test_layer, input_Ex, height=50, figname="test.pdf")
+    #plot_layer_pattern(test_layer, input_Ex, height=50, figname="test.pdf")
     #plot_layer_cross_section(test_layer, y_location=15, mode="norm")
     #plot_layer_cross_section(test_layer, y_location=15, mode="real")
     #plot_layer_cross_section(test_layer, y_location=15, mode="angle")

@@ -1,0 +1,22 @@
+{
+    "ONN": [
+        {
+            "name": "Layer_5_784_12_dummy",
+            "mode": "x0",
+            "encoding": "amplitude",
+            "input_size": 28,
+            "input_neuron_distance": 0.71,
+            "hidden_layers": [
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556},
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556},
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556},
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556},
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556} 
+            ],
+            "output_neuron_number": 300,
+            "output_neuron_distance": 1.8,
+            "output_layer_distance": 556,
+            "dummy": true
+        }
+    ]
+}

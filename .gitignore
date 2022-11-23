@@ -139,3 +139,6 @@ dmypy.json
 
 # saved pkl
 *.pkl
+
+# temp directory
+/temp

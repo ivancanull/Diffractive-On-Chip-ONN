@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..')))
 
 import argparse
 import json
-import pandas as pd
+
 import tensorflow as tf
 import numpy as np
 
@@ -37,7 +37,7 @@ class DiffractiveLayer(tf.keras.layers.Layer):
         self.x0_bound = Const.Lambda0 * distance / 2
 
         x0 = np.linspace(self.bound, self.bound + self.distance * (self.neuron_number - 1), self.neuron_number)
-        
+
         # initiate phase change
         if mode == "input":
             self.phase = self.add_weight(name="phase", shape=[1, self.neuron_number], dtype=tf.float32, initializer=tf.constant_initializer(0), trainable=False)
@@ -48,9 +48,6 @@ class DiffractiveLayer(tf.keras.layers.Layer):
         elif mode == "phase":
             self.phase = self.add_weight(name="phase", shape=[1, self.neuron_number], dtype=tf.float32, initializer=tf.constant_initializer(0.5), trainable=True)
             self.x0 = self.add_weight(name="x0", shape=[self.neuron_number], dtype=tf.float32, initializer=tf.constant_initializer(x0), trainable=False)
-        elif mode == "hybrid":
-            self.phase = self.add_weight(name="phase", shape=[1, self.neuron_number], dtype=tf.float32, initializer=tf.constant_initializer(0.5), trainable=True)
-            self.x0 = self.add_weight(name="x0", shape=[self.neuron_number], dtype=tf.float32, initializer=tf.constant_initializer(x0), trainable=True)
 
         # self.x0_left_limit = x0 - Const.Lambda0 * Const.x0_bound
         # self.x0_right_limit = x0 + Const.Lambda0 * Const.x0_bound
@@ -130,8 +127,50 @@ class DiffractiveLayer(tf.keras.layers.Layer):
                     le = ne
                     self.mask[i + 1].assign(0)
 
+class InputLayer():
+    def __init__(self,
+                 neuron_number=40,
+                 distance=6,
+                 y=0,
+                 y_next=None,
+                 bound=10,
+                 h_neuron=2,
+                 w_neuron=0.6,
+                 mode="x0",
+                 dummy=False,
+                 ):
+
+        self.neuron_number = neuron_number
+        self.distance = distance 
+        self.bound = bound 
+        self.h_neuron = tf.constant(h_neuron, dtype=tf.float32) # h_neuron is an numpy array
+        self.length = (bound * 2 + distance * (neuron_number - 1)) # the total length of the layer
+        self.w_neuron = w_neuron 
+        self.x0_bound = distance / 2
+
+        x0 = tf.linspace(self.bound, self.bound + self.distance * (self.neuron_number - 1), self.neuron_number)
+
+        
+
+        # self.x0_left_limit = x0 - Const.Lambda0 * Const.x0_bound
+        # self.x0_right_limit = x0 + Const.Lambda0 * Const.x0_bound
+
+        self.original_x0 = np.copy(self.x0)
+        self.y0 = y * Const.Lambda0
+
+        dy = (y_next - y) * Const.Lambda0
+        self.z = tf.constant(tf.abs(dy + self.h_neuron + Const.delta), dtype=tf.float32)
+
+        # dummy cells
+        self.dummy = dummy
+        self.mask = tf.Variable(tf.ones_like(self.x0, dtype=tf.complex64), name="mask", trainable=False)
+    def encode(self, x):
+        self.x0 = 
+
+
 class DONN(tf.keras.Model):
 
+    # For manufacturing, the structure unit is (um)
     def __init__(self,
                 input_neuron_num,
                 input_distance,
@@ -153,7 +192,6 @@ class DONN(tf.keras.Model):
         self.dls = [] # diffractive layers
         self.layer_num = hidden_layer_num + 1
         self.mode = mode
-        self.dummy = dummy
         # define layer distance
         self.ys = [0]
         for i in range(hidden_layer_num):
@@ -167,6 +205,9 @@ class DONN(tf.keras.Model):
                                             y=self.ys[0], 
                                             y_next=self.ys[1],
                                             mode="input"))
+
+        # for input layer, x0 are input.
+
         # hidden layer
         for i in range(hidden_layer_num):
             
@@ -180,7 +221,7 @@ class DONN(tf.keras.Model):
         
         ################ method 1 ################
         # detector and output layer
-        x0_d = np.linspace(output_bound, output_bound + output_distance * (output_neuron_num - 1), output_neuron_num) * Const.Lambda0 
+        x0_d = np.linspace(output_bound, output_bound + output_distance * (output_neuron_num - 1), output_neuron_num)
 
         dw = np.zeros([output_neuron_num, output_dim]) # detector to output weight
         dn = output_neuron_num // (output_dim * 2 + 1)
@@ -209,6 +250,7 @@ class DONN(tf.keras.Model):
         # self.x0_d = self.add_weight(name="x0_d", shape=[output_dim], dtype=tf.float32, initializer=tf.constant_initializer(x0_n), trainable=False)
 
     def call(self, x):
+        # x is (num_in, 1)
         for i in range(self.layer_num - 1):
             x = self.dls[i](self.layers[i + 1].x0, x)
         x = self.dls[self.layer_num - 1](self.x0_d, x)
@@ -220,21 +262,6 @@ class DONN(tf.keras.Model):
     def remove_overlapping(self):
         for i in range(self.layer_num - 1):
             self.dls[i + 1].remove_overlapping()
-    
-
-    def get_weights(self):
-
-        # print weights to dataframe
-        df = pd.DataFrame()
-        for i in range(self.layer_num - 1):
-            if self.mode == "x0":
-                df['x0_%d' %i] = self.dls[i + 1].x0.numpy()
-                if self.dummy == True:
-                    self.dls[i + 1].remove_overlapping()
-                    df['mask_%d' %i] = self.dls[i + 1].mask.numpy().astype(int)
-            elif self.mode == "phase":
-                df['phase_%d' %i] = self.dls[i + 1].phase.numpy() * Const.pi
-        return df
 
 def test_DONN():
 

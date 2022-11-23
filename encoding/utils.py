@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
+from tensorflow.keras.datasets import fashion_mnist
+
 import matplotlib.pyplot as plt
 import cv2
 import os.path
@@ -30,14 +32,20 @@ def convert_compact_to_y(y_c):
     dim = y_c.shape[0]
     y = np.zeros((dim, 1), dtype=int)
 
-def load_data(new_size, fft=False, compact=False):
-    (train_X, train_y), (test_X, test_y) = import_MNIST()
+def load_data(new_size, fft=False, compact=False, dataset="MNIST"):
+
+    if dataset == "MNIST":
+        (train_X, train_y), (test_X, test_y) = import_MNIST()
+    elif dataset == "Fashion_MNIST":
+        (train_X, train_y), (test_X, test_y) = import_Fashion_MNIST()
+    else:
+        raise ValueError("Dataset not supported")
 
     #example_input = get_MNIST_example(batch_size)
     if fft == True:
-        out_file = "./data/MNIST/MNIST_fft_" + str(new_size) + "x" + str(new_size) + ".npz"
+        out_file = "./data/%s/%s_fft_" % (dataset, dataset) + str(new_size) + "x" + str(new_size) + ".npz"
     else:
-        out_file = "./data/MNIST/MNIST_" + str(new_size) + "x" + str(new_size) + ".npz"
+        out_file = "./data/%s/%s_" % (dataset, dataset) + str(new_size) + "x" + str(new_size) + ".npz"
 
     if os.path.isfile(out_file):
         npz_file = np.load(out_file)
@@ -74,11 +82,10 @@ def load_data(new_size, fft=False, compact=False):
         with open(out_file, 'wb') as f:
             np.savez(f, train_X=compressed_train_X, train_y=train_y, test_X=compressed_test_X, test_y=test_y)
         return (compressed_train_X, train_y), (compressed_test_X, test_y)
-        
 
 def import_MNIST():
     """
-    Import Keras from tf.keras
+    Import MNIST from tf.keras
     
     Return: 
         data: (train_x, train_y, test_x, test_y)
@@ -90,6 +97,25 @@ def import_MNIST():
         return (npz_file['train_X'], npz_file['train_y']), (npz_file['test_X'], npz_file['test_y'])
     else:
         (train_X, train_y), (test_X, test_y) = mnist.load_data()
+        with open(data_file, 'wb') as f:
+            np.savez(f, train_X=train_X, train_y=train_y, test_X=test_X, test_y=test_y)
+        return (train_X, train_y), (test_X, test_y) 
+
+def import_Fashion_MNIST():
+    """
+    Import Fashion MNIST from tf.keras
+
+    Return:
+        data: (train_x, train_y), (test_x, test_y)
+    
+    """
+
+    data_file = "./data/Fashion_MNIST/Fashion_MNIST.npz"
+    if os.path.isfile(data_file):
+        npz_file = np.load(data_file)
+        return (npz_file['train_X'], npz_file['train_y']), (npz_file['test_X'], npz_file['test_y'])
+    else:
+        (train_X, train_y), (test_X, test_y) = fashion_mnist.load_data()
         with open(data_file, 'wb') as f:
             np.savez(f, train_X=train_X, train_y=train_y, test_X=test_X, test_y=test_y)
         return (train_X, train_y), (test_X, test_y) 
@@ -173,7 +199,7 @@ def test_convert():
     print(np.sum((c_y == new_y), axis=1) == 5)
 
 def main():
-    test_convert()
+    (train_X, train_y), (test_X, test_y) = import_Fashion_MNIST()
 
 if __name__ == '__main__':
     main()

@@ -9,16 +9,16 @@ import json
 import tensorflow as tf
 import numpy as np
 from tensorflow import keras
+import pandas as pd
 
 import encoding.utils
 import utils.helpers
+import utils.plot
 from utils import constants as Const
 from onn import DONN
 
 tf.autograph.set_verbosity(10)
 def main(args):
-
-
 
     # read json
     with open(args.json_file, 'r') as f:
@@ -36,12 +36,12 @@ def main(args):
             raise ValueError("Invalid mode: %s" % donn["mode"])
         
         if donn["encoding"]  == "amplitude":
-            (x_train, y_train), (x_test, y_test) = encoding.utils.load_data(donn["input_size"], compact=args.compact_decoding)
+            (x_train, y_train), (x_test, y_test) = encoding.utils.load_data(donn["input_size"], compact=args.compact_decoding, dataset=args.dataset)
         elif donn["encoding"] == "phase":
-            (x_train, y_train), (x_test, y_test) = encoding.utils.load_data(donn["input_size"], compact=args.compact_decoding)
+            (x_train, y_train), (x_test, y_test) = encoding.utils.load_data(donn["input_size"], compact=args.compact_decoding, dataset=args.dataset)
             (x_train, y_train), (x_test, y_test) = encoding.utils.phase_encoding(x_train, y_train, x_test, y_test)
         elif donn["encoding"] == "fft":
-            (x_train, y_train), (x_test, y_test) = encoding.utils.load_data(donn["input_size"], fft=True, compact=args.compact_decoding)
+            (x_train, y_train), (x_test, y_test) = encoding.utils.load_data(donn["input_size"], fft=True, compact=args.compact_decoding, dataset=args.dataset)
         else:
             raise ValueError("Invalid encoding: %s" % donn["encoding"])
 
@@ -128,15 +128,35 @@ def main(args):
                   loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                   metrics=['accuracy'])
 
+        if not os.path.exists("./temp"):
+            os.mkdir("./temp")
+        if not os.path.exists("./temp/tfckpt"):
+            os.mkdir("./temp/tfckpt")
+        if not os.path.exists("./temp/tfcsv"):
+            os.mkdir("./temp/tfcsv")
+        if not os.path.exists("./temp/weights"):
+            os.mkdir("./temp/weights")
+
         checkpoint_path = "temp/tfckpt/"
         checkpoint_path += donn["name"]
 
         # create a callback that saves the model's weights
         cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                        monitor="val_accuracy",
-                                                        save_weights_only=True,)
-        # lgdir = os.path("/temp/tfcsv/" + donn["name"] + ".csv")
-        csv_logger = tf.keras.callbacks.CSVLogger("./temp/tfcsv/training.csv", separator=',', append=True)
+                                                         monitor="val_accuracy",
+                                                         save_weights_only=True,)
+        log_file = "./temp/tfcsv/" + donn["name"] + ".csv"
+        weight_file = "./temp/weights/" + donn["name"] + ".csv"
+        csv_logger = tf.keras.callbacks.CSVLogger(log_file, separator=',', append=True)
+
+
+        if not os.path.exists(log_file):
+            with open(log_file, 'w') as fp:
+                pass
+        
+        if not os.path.exists(weight_file):
+            with open(weight_file, 'w') as fp:
+                pass
+
 
         model.fit(x=train_dataset,
                 epochs=args.num_epochs,
@@ -145,7 +165,11 @@ def main(args):
 
         model.evaluate(x=test_dataset)
 
+        model.save_weights('./temp/tfckpt/' + donn["name"])
         
+        utils.plot.plot_history(history_file=log_file, filename=donn["name"]+'.pdf')
+        df = model.get_weights()
+        df.to_csv(weight_file)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -158,6 +182,8 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', dest='learning_rate', default=1e-8, type=float, help='learning rate of the DONN')
     parser.add_argument('--num_epochs', dest='num_epochs', default=10, type=int, help='the number of epochs to train the model')
     parser.add_argument('--batch_size', dest='batch_size', default=50, type=int, help='batch size of the model')
+
+    parser.add_argument('--dataset', dest='dataset', default='MNIST', type=str, help='dataset to train')
     # parser.add_argument('--verbose', dest='verbose', default=False, type=bool, help='print=')
     # parser.add_argument('--constrained', dest='constrained', default=False, type=bool, help='with constrained neurons location')
     # parser.add_argument('--lr_decay', dest='lr_decay', default=0.95, type=float, help='learning rate decay')

@@ -1,71 +1,100 @@
 {
     "ONN": [
         {
-            "name": "Layer_1_784_12",
-            "input_neuron_distance": 12,
+            "name": "Layer_1_784_071_dummy",
+            "mode": "x0",
+            "encoding": "amplitude",
+            "input_size": 28,
+            "input_neuron_distance": 0.71,
             "hidden_layers": [
-                {"neuron_number": 784, "neuron_distance": 12, "layer_distance": 9400} 
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556}
             ],
             "output_neuron_number": 300,
-            "output_neuron_distance": 20,
-            "output_layer_distance": 9400,
-            "dummy": false
+            "output_neuron_distance": 1.8,
+            "output_layer_distance": 556,
+            "dummy": true
         },
         {
-            "name": "Layer_5_784_12",
-            "input_neuron_distance": 2,
+            "name": "Layer_3_784_071_dummy",
+            "mode": "x0",
+            "encoding": "amplitude",
+            "input_size": 28,
+            "input_neuron_distance": 0.71,
             "hidden_layers": [
-                {"neuron_number": 784, "neuron_distance": 12, "layer_distance": 9400},
-                {"neuron_number": 784, "neuron_distance": 12, "layer_distance": 9400},
-                {"neuron_number": 784, "neuron_distance": 12, "layer_distance": 9400},
-                {"neuron_number": 784, "neuron_distance": 12, "layer_distance": 9400},
-                {"neuron_number": 784, "neuron_distance": 12, "layer_distance": 9400} 
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556},
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556},
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556}
             ],
             "output_neuron_number": 300,
-            "output_neuron_distance": 20,
-            "output_layer_distance": 9400,
-            "dummy": false
+            "output_neuron_distance": 1.8,
+            "output_layer_distance": 556,
+            "dummy": true
         },
         {
-            "name": "Layer_1_784_2",
-            "input_neuron_distance": 2,
+            "name": "Layer_5_784_071_dummy",
+            "mode": "x0",
+            "encoding": "amplitude",
+            "input_size": 28,
+            "input_neuron_distance": 0.71,
             "hidden_layers": [
-                {"neuron_number": 784, "neuron_distance": 2, "layer_distance": 1600} 
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556},
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556},
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556},
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556},
+                {"neuron_number": 784, "neuron_distance": 0.71, "layer_distance": 556} 
             ],
             "output_neuron_number": 300,
-            "output_neuron_distance": 4,
-            "output_layer_distance": 1600,
-            "dummy": false
+            "output_neuron_distance": 1.8,
+            "output_layer_distance": 556,
+            "dummy": true
         },
         {
-            "name": "Layer_5_784_2",
-            "input_neuron_distance": 2,
+            "name": "Layer_1_196_071_dummy",
+            "mode": "x0",
+            "encoding": "amplitude",
+            "input_size": 14,
+            "input_neuron_distance": 0.71,
             "hidden_layers": [
-                {"neuron_number": 784, "neuron_distance": 2, "layer_distance": 1600},
-                {"neuron_number": 784, "neuron_distance": 2, "layer_distance": 1600},
-                {"neuron_number": 784, "neuron_distance": 2, "layer_distance": 1600},
-                {"neuron_number": 784, "neuron_distance": 2, "layer_distance": 1600},
-                {"neuron_number": 784, "neuron_distance": 2, "layer_distance": 1600}
+                {"neuron_number": 196, "neuron_distance": 0.71, "layer_distance": 140}
             ],
             "output_neuron_number": 300,
-            "output_neuron_distance": 4,
-            "output_layer_distance": 1600,
-            "dummy": false
+            "output_neuron_distance": 0.46,
+            "output_layer_distance": 140,
+            "dummy": true
         },
         {
-            "name": "Layer_5_300_12",
-            "input_neuron_distance": 6,
+            "name": "Layer_3_196_071_dummy",
+            "mode": "x0",
+            "encoding": "amplitude",
+            "input_size": 14,
+            "input_neuron_distance": 0.71,
             "hidden_layers": [
-                {"neuron_number": 300, "neuron_distance": 12, "layer_distance": 3600}, 
-                {"neuron_number": 300, "neuron_distance": 12, "layer_distance": 3600},
-                {"neuron_number": 300, "neuron_distance": 12, "layer_distance": 3600},
-                {"neuron_number": 300, "neuron_distance": 12, "layer_distance": 3600},
-                {"neuron_number": 300, "neuron_distance": 12, "layer_distance": 3600}
+                {"neuron_number": 196, "neuron_distance": 0.71, "layer_distance": 140},
+                {"neuron_number": 196, "neuron_distance": 0.71, "layer_distance": 140},
+                {"neuron_number": 196, "neuron_distance": 0.71, "layer_distance": 140}
             ],
             "output_neuron_number": 300,
-            "output_neuron_distance": 12,
-            "output_layer_distance": 3600,
-            "dummy": false
+            "output_neuron_distance": 0.46,
+            "output_layer_distance": 140,
+            "dummy": true
+        },
+        {
+            "name": "Layer_5_196_071_dummy",
+            "mode": "x0",
+            "encoding": "amplitude",
+            "input_size": 14,
+            "input_neuron_distance": 0.71,
+            "hidden_layers": [
+                {"neuron_number": 196, "neuron_distance": 0.71, "layer_distance": 140},
+                {"neuron_number": 196, "neuron_distance": 0.71, "layer_distance": 140},
+                {"neuron_number": 196, "neuron_distance": 0.71, "layer_distance": 140},
+                {"neuron_number": 196, "neuron_distance": 0.71, "layer_distance": 140},
+                {"neuron_number": 196, "neuron_distance": 0.71, "layer_distance": 140}
+            ],
+            "output_neuron_number": 300,
+            "output_neuron_distance": 0.46,
+            "output_layer_distance": 140,
+            "dummy": true
         }
     ]
 }
